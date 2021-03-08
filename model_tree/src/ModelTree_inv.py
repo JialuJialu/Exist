@@ -98,7 +98,8 @@ class ModelTreeInv(object):
                 # loss_node, model_node = _fit_model_both(
                 #     X_inv, y_inv, X_init, y_post, X_cons, y_cons, not_to_fit, self.use_inv, model, verbose=True,
                 #     node_name=node_name, fitting_hist=self.fitting_history, sort_reverse=self.sort_reverse)
-                loss_node, model_node = _fit_model(X_init, y_post, model)
+                loss_node, model_node = _fit_model(
+                    X_init, y_post, model, verbose=True, node_name=node_name, fitting_hist=self.fitting_history)
                 node = {"name": node_name,
                         # "parent_name": parent,
                         "index": container["index_node_global"],
@@ -126,15 +127,6 @@ class ModelTreeInv(object):
 
                 container["index_node_global"] += 1
                 return node
-
-                result = _splitter(node, model, header_init, self.sign,
-                                   no_repeat, not_to_fit=not_to_fit,
-                                   loss_func=self.loss_func,
-                                   min_samples_leaf=min_samples_leaf,
-                                   j_feature_range=j_feature_range,
-                                   max_depth=max_depth,
-                                   search_type=search_type,
-                                   n_search_grid=n_search_grid)
 
             '''
             Recursively split node + traverse node until a terminal node is reached
@@ -203,23 +195,55 @@ class ModelTreeInv(object):
                 _split_traverse_node(node["children"]["left"], container)
                 _split_traverse_node(node["children"]["right"], container)
 
+            def _split_known_model(node, container):
+                known_model = self.known_model
+                sign = self.sign
+                opp_sign = op_sign(sign)
+                name = node["name"]
+                lookup_name = name.replace("_l", "_{}".format(
+                    sign)).replace("_r", "_{}".format(opp_sign))
+                if known_model[lookup_name]["split"]:
+                    result = known_model[lookup_name]
+                    node["j_feature"] = result["j_feature"]
+                    node["threshold"] = result["threshold"]
+                    (X_init, y_post) = node["data"]
+                    _, node_model = _fit_model(
+                        X_init, y_post, model, verbose=True, node_name=name, fitting_hist=self.fitting_history)
+
+                    (X_init_l, y_post_l), (X_init_r, y_post_r) = _split_data(
+                        node["j_feature"], node["threshold"], X_init, y_post, sign)
+                    node["children"]["left"] = _create_node(
+                        X_init_l, y_post_l, node["depth"]+1, container=container,
+                        parent=node["name"], direction="l", not_to_fit=[])
+                    # not_to_fit not used because it is the known model
+                    node["children"]["right"] = _create_node(
+                        X_init_r, y_post_r, node["depth"]+1, container=container,
+                        parent=node["name"], direction="r", not_to_fit=[])
+                    _split_known_model(node["children"]["left"], container)
+                    _split_known_model(node["children"]["right"], container)
+
+                else:
+                    # TODO: remove the assumption that depth is more than one?
+                    node["model"] = known_model[lookup_name]["model"]
+                    (X_init, y_post) = node["data"]
+                    parent, direction = node["name"].rsplit('_', 1)
+                    parent_lk = parent.replace("_l", "_{}".format(
+                        sign)).replace("_r", "_{}".format(opp_sign))
+                    y_pred = node["model"].predict(X_init)  # known model
+                    node["loss"] = node["model"].loss(
+                        X_init, y_post, y_pred, self.loss_func, self.norm_p)
+                    self.fitting_history[node["name"]] = _record_fitting(
+                        X_init, y_post, y_pred)
+
+            # Return to the main routine of _build_tree: split and traverse root node
             container = {"index_node_global": 0}  # mutatable container
             root = _create_node(X_init, y_post, 0, container,
                                 parent=None, direction=None, not_to_fit=[])  # depth 0 root node
-            # split and traverse root node
-            _split_traverse_node(root, container)
 
-            return root
-
-            def _split_known_model(node, container):
-                pass  # TODO
-
-            # split and traverse root node
             if self.testing_known_model:
                 _split_known_model(root, container)
             else:
-                if self.bfs:
-                    _split_traverse_node(root, container)
+                _split_traverse_node(root, container)
             return root
 
         # Construct tree
@@ -468,9 +492,7 @@ class ModelTreeInv(object):
             xticklabels = np.array([[round(q, 2) for q in row] for row in X])
             axes[i].set_xticklabels(xticklabels, fontsize=7, rotation=90)
             # green if data point from invariant constraint blue ow
-            cutoff = hist[node]["cutoff"]
-            colors = np.array([[0, 1, 0] if arg_idx[i] < cutoff
-                               else [0, 0, 1] for i in xaxis])
+            colors = np.array([[0, 0, 1] for i in xaxis])
             axes[i].scatter(xaxis, y, c=colors, label="y", linewidth=7.0)
             axes[i].plot(xaxis, ypred, '-', label="y_pred", linewidth=6.0)
             axes[i].set_title('fitting node {}'.format(node), fontsize=40)
@@ -490,14 +512,6 @@ class ModelTreeInv(object):
 # Side functions
 #
 # ***********************************
-        # result = _splitter(node, model, header_init, self.sign,
-        #                    no_repeat, not_to_fit=not_to_fit,
-        #                    loss_func=self.loss_func,
-        #                    min_samples_leaf=min_samples_leaf,
-        #                    j_feature_range=j_feature_range,
-        #                    max_depth=max_depth,
-        #                    search_type=search_type,
-        #                    n_search_grid=n_search_grid)
 
 def _splitter(node, model, header_init, sign,
               no_repeat, not_to_fit, loss_func, min_samples_leaf,
@@ -517,6 +531,11 @@ def _splitter(node, model, header_init, sign,
     models_best = None
     j_feature_best = None
     threshold_best = None
+
+    if loss_best <= THRESHOLD:
+        result = {"did_split": False,
+                  "N": N}
+        return result
 
     split_range = [i for i in j_feature_range if i not in not_to_fit]
 
@@ -564,15 +583,17 @@ def _splitter(node, model, header_init, sign,
                     continue
 
                 # Compute weight loss function
-                loss_left, model_left = _fit_model(X_left, y_left, model)
-                loss_right, model_right = _fit_model(X_right, y_right, model)
+                loss_left, model_left = _fit_model(
+                    X_left, y_left, model)
+                loss_right, model_right = _fit_model(
+                    X_right, y_right, model)
                 loss_split = math.sqrt(loss_left ** 2 + loss_right ** 2)
 
                 # print("Trying on {} based on {:.2f} with left loss {:.6f}, right loss {:.6f}, averaged loss {:.6f}, left has {:.0f}, right has {:.0f}".format(
                 #     j_feature, threshold, loss_left, loss_right, loss_split, N_left, N_right))
 
                 # Update best parameters if loss is lower
-                if loss_split < loss_best:
+                if loss_split < loss_best - THRESHOLD:
                     print("previous best: {:.6f}".format(loss_best))
                     print("Splitting on {} based on {:.2f} with left loss {:.2f}, right loss {:.2f}, averaged loss {:.2f}, left has {:.0f}, right has {:.0f}".format(
                         j_feature, threshold, loss_left, loss_right, loss_split, N_left, N_right))
@@ -595,12 +616,14 @@ def _splitter(node, model, header_init, sign,
     return result
 
 
-def _fit_model(X, y, model):
+def _fit_model(X, y, model, verbose=False, node_name=None, fitting_hist=None):
     model_copy = deepcopy(model)  # must deepcopy the model!
     model_copy.fit(X, y)
     y_pred = model_copy.predict(X)
     loss = model_copy.loss(X, y, y_pred)  # X_used to used in loss
     assert loss >= 0.0
+    if verbose:
+        fitting_hist[node_name] = _record_fitting(X, y, y_pred)
     return loss, model_copy
 
 
@@ -651,12 +674,11 @@ def _concat0(first, second, axis):
     return y
 
 
-def _record_fitting(X, y, y_pred, cutoff, not_to_fit):
+def _record_fitting(X, y, y_pred):
     return {"y": y,
             "y_pred": y_pred,
             "X": X,
-            "cutoff": cutoff,
-            "not_to_fit": not_to_fit
+            "not_to_fit": []
             }  # indices where X_init start}
 
 

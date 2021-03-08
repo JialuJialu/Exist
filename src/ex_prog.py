@@ -171,7 +171,7 @@ class VarInfo:
         raise Exception
 
     def linear_func(self, *args):
-        lst = np.zeros(self.ninput + len(self.const) + len(self.var) + 1)
+        lst = np.zeros(self.ninput + len(self.const) + len(self.var))
         for arg in args:
             if len(arg) == 2:
                 name, coef = arg

@@ -9,7 +9,6 @@ import os
 import pickle
 import csv
 import numpy as np
-from model_tree.src.ModelTree_old import ModelTree
 from model_tree.src.ModelTree_inv import ModelTreeInv
 from model_tree.src.utils import load_csv_data, cross_validate, load_csv_data_no_post, load_csv_data_with_pre
 
@@ -78,7 +77,7 @@ class runModelTree(object):
 
         if self.plot_only:
             if self.testing_known_model:
-                output_filename += "_true_inv"
+                output_filename += "_known_inv"
             else:
                 output_filename += "_learned"
             model_tree.plot_fitting_hist(output_filename, True, header)
@@ -90,7 +89,7 @@ class runModelTree(object):
             y_pred = model_tree.predict(X_init)
             sort_str = "reversed_sort" if sort else "sort"
             if self.testing_known_model:
-                output_filename += "_true_inv_{}_{}".format(sign, sort_str)
+                output_filename += "_known_inv_{}_{}".format(sign, sort_str)
             else:
                 output_filename += "_learned_{}_{}".format(sign, sort_str)
             invariant_string, generate_invariant, generate_txt, learned_tree = model_tree.export_func(

@@ -12,7 +12,6 @@ from src.ex_prog import ex4, ex4a, ex5, ex5y, ex5yp, ex5p, ex7, ex8, ex8p, ex9, 
 from src.ex_prog import ex12, ex13, ex15, ex15a, ex17, ex18, ex19
 from src.ex_prog import ex20, ex21, ex22
 from src.ex_prog import exp0a, exp1a, exp1b, exp1c, exp3a, exp3b, exp12, exp19a, exp19b, exp21
-# from src.ex_prog import ex21, ex22, ex22a, ex23
 import os
 import pdb
 import itertools
@@ -31,8 +30,8 @@ now = datetime.now()
 dt_string = now.strftime("%m:%d:%H:%M")
 
 # parameters that do not need to change when running experiements
-UPDATE_CSV = True  # False just want to fit learning and don't want collect data again
-TESTING_KNOWN_MODEL = False
+UPDATE_CSV = False  # False just want to fit learning and don't want collect data again
+TESTING_KNOWN_MODEL = True
 FIT_USED = True  # FIT_USED False if require a truly linear moel
 FIT_intercept = False
 Bootstrapping = False
@@ -41,12 +40,12 @@ Bootstrapping_ratio = 1
 
 # May change while running experiements
 NUM_RUNS = int(sys.argv[1])
-PLOT_fitting = False
+PLOT_fitting = True
 PLOT_only = False
 # When not Bootstrapping, we sample independently for nBAG times
 # if Bootstrapping, then we only sample data once, and subsample to get bags;
 # numBAG = [1, 2, 5, 10, 15]
-numBAG = [5]
+numBAG = [2]
 MAX_DEPTH = 2
 MIN_SAMPLE_LEAF = 5
 
@@ -109,11 +108,6 @@ INIT_GRID0bool2int = [{"bool": [],
                        "non_neg_int": [int1, int2]}
                       for int1 in non_neg_int_space
                       for int2 in non_neg_int_space]
-# def generateGrid(int_num, bool_num):
-#     m = len(int_space)**int_num * len(bool_space)**bool_num
-#     grid = [{"bool": [], "int": []} for _ in range(m)]
-#     for i in range(int_num):
-#         for bool_i in bool_space:
 
 
 normal = np.linspace(0.1, 0.9, 9)
@@ -196,8 +190,7 @@ def get_stats(progname, proginfo, filename):
         df.to_csv(filename_csv, index=False)
     else:
         hists = None
-        hists = prog(progname, inpts[0], hists,
-                     initgrid[0], constraint=False)
+        hists = prog(progname, inpts[0], hists, initgrid[0])
         aggre_data.end_sampling_runs(hists, inpts[0])
     return aggre_data.qual_feature_indices, aggre_data.known_inv, aggre_data.known_model
 
@@ -397,87 +390,93 @@ def save_to_text(norm, name, known_inv, invariant, probinputs, text, nBAG):
     f.close()
 
 
-learned_inv = []
-for name, proginfo in progs.items():
-    nBAG = max(numBAG)
-    tot_time = timeit.default_timer()
-    samp_time = 0
-    tree_time = 0
-    regressors = [
-        # (linear_regr, "MSE"),
-        (linear_regr_constraint, "MSEwithConstraint"),
-        # (linear_regr_constraint_L1, "L1withConstraint"),
-        # (linear_regr_constraint_L2, "L2withConstraint")
-    ]
-    for regresser, norm in regressors:
-        plot_fitting = PLOT_fitting
-        filename = name
-        if Bootstrapping:
-            time = timeit.default_timer()
-            qual_features_indices, known_inv, known_model = get_stats(
-                name, proginfo, filename)
-            samp_time = samp_time + timeit.default_timer() - time
-        treelist = []
-        for T in range(nBAG):
-            filename = "{}_{}".format(name, T)
-            if not Bootstrapping:
+def main():
+    learned_inv = []
+    for name, proginfo in progs.items():
+        nBAG = max(numBAG)
+        tot_time = timeit.default_timer()
+        samp_time = 0
+        tree_time = 0
+        regressors = [
+            # (linear_regr, "MSE"),
+            (linear_regr_constraint, "MSEwithConstraint"),
+            # (linear_regr_constraint_L1, "L1withConstraint"),
+            # (linear_regr_constraint_L2, "L2withConstraint")
+        ]
+        for regresser, norm in regressors:
+            plot_fitting = PLOT_fitting
+            filename = name
+            if Bootstrapping:
                 time = timeit.default_timer()
                 qual_features_indices, known_inv, known_model = get_stats(
                     name, proginfo, filename)
-                samp_time = samp_time + timeit.default_timer()-time
-            time = timeit.default_timer()
-            model = regresser(fit_intercept=FIT_intercept)
-            m = runModelTree(model, filename, norm, qual_features_indices,
-                             known_inv, known_model, TESTING_KNOWN_MODEL,
-                             PLOT_only, plot_fitting,
-                             Bootstrapping, Bootstrapping_ratio,
-                             sign=list(proginfo)[-1],
-                             fit_used=FIT_USED, max_depth=MAX_DEPTH,
-                             min_samples_leaf=MIN_SAMPLE_LEAF)
+                samp_time = samp_time + timeit.default_timer() - time
+            treelist = []
+            for T in range(nBAG):
+                filename = "{}_{}".format(name, T)
+                if not Bootstrapping:
+                    time = timeit.default_timer()
+                    qual_features_indices, known_inv, known_model = get_stats(
+                        name, proginfo, filename)
+                    samp_time = samp_time + timeit.default_timer()-time
+                time = timeit.default_timer()
+                model = regresser(fit_intercept=FIT_intercept)
+                m = runModelTree(model, filename, norm, qual_features_indices,
+                                 known_inv, known_model, TESTING_KNOWN_MODEL,
+                                 PLOT_only, plot_fitting,
+                                 Bootstrapping, Bootstrapping_ratio,
+                                 sign=list(proginfo)[-1],
+                                 fit_used=FIT_USED, max_depth=MAX_DEPTH,
+                                 min_samples_leaf=MIN_SAMPLE_LEAF)
 
-            invariant, inv_func_recurse, generate_txt, learned_tree = m.run()
-            picklename = os.path.join(
-                "pickle", "{}.p".format(filename))
-            pickle.dump(learned_tree, open(picklename, 'wb'))
-            tree_time = timeit.default_timer() + tree_time - time
-            treelist.append(learned_tree)
-            learned_inv.append(
-                [norm, name, known_inv, invariant, len(proginfo[1]), nBAG])
-            # eagerly write to the file so the previous data won't be lost when we stuck in some examples
-            write_to_csv(learned_inv)
+                invariant, inv_func_recurse, generate_txt, learned_tree = m.run()
+                if TESTING_KNOWN_MODEL:
+                    return
+                picklename = os.path.join(
+                    "pickle", "{}.p".format(filename))
+                pickle.dump(learned_tree, open(picklename, 'wb'))
+                tree_time = timeit.default_timer() + tree_time - time
+                treelist.append(learned_tree)
+                learned_inv.append(
+                    [norm, name, known_inv, invariant, len(proginfo[1]), nBAG])
+                # eagerly write to the file so the previous data won't be lost when we stuck in some examples
+                write_to_csv(learned_inv)
 
-            if T+1 in numBAG:
+                if T+1 in numBAG:
 
-                classified_tree_list, names_classified_tree_list = classify_tree_list(
-                    treelist)
-                print(names_classified_tree_list)
-                most_common_structure_treeclass = find_most_common_structure(
-                    classified_tree_list)
+                    classified_tree_list, names_classified_tree_list = classify_tree_list(
+                        treelist)
+                    print(names_classified_tree_list)
+                    most_common_structure_treeclass = find_most_common_structure(
+                        classified_tree_list)
 
-                for (aggregate_method, method) in [(avg_models, "mean"), (median_models, "median")]:
-                    average_tree = aggregate_trees(
-                        most_common_structure_treeclass, aggregate_method)
-                    invariant_string = inv_func_recurse(average_tree)
+                    for (aggregate_method, method) in [(avg_models, "mean"), (median_models, "median")]:
+                        average_tree = aggregate_trees(
+                            most_common_structure_treeclass, aggregate_method)
+                        invariant_string = inv_func_recurse(average_tree)
 
-                    super_tree = find_common_structure(treelist)
-                    average_tree2 = aggregate_trees(
-                        super_tree, aggregate_method)
-                    invariant_string2 = inv_func_recurse(average_tree2)
+                        super_tree = find_common_structure(treelist)
+                        average_tree2 = aggregate_trees(
+                            super_tree, aggregate_method)
+                        invariant_string2 = inv_func_recurse(average_tree2)
 
-                    learned_inv.append(
-                        [norm, "{}_{}".format(name, method), known_inv, invariant_string, len(proginfo[1]), T+1])
-                    learned_inv.append(
-                        [norm, "{}_supertree_{}".format(name, method), known_inv, invariant_string2, len(proginfo[1]), T+1])
+                        learned_inv.append(
+                            [norm, "{}_{}".format(name, method), known_inv, invariant_string, len(proginfo[1]), T+1])
+                        learned_inv.append(
+                            [norm, "{}_supertree_{}".format(name, method), known_inv, invariant_string2, len(proginfo[1]), T+1])
 
-                    write_to_csv(learned_inv)
-                    save_to_text(norm, "{}_{}".format(name, method), known_inv,
-                                 invariant_string, proginfo[1], generate_txt(average_tree, []), nBAG)
-                    save_to_text(norm, "{}_supertree_{}".format(
-                        name, method), known_inv, invariant_string2, proginfo[1], generate_txt(average_tree2, []), nBAG)
-    tot_time = timeit.default_timer()-tot_time
+                        write_to_csv(learned_inv)
+                        save_to_text(norm, "{}_{}".format(name, method), known_inv,
+                                     invariant_string, proginfo[1], generate_txt(average_tree, []), nBAG)
+                        save_to_text(norm, "{}_supertree_{}".format(
+                            name, method), known_inv, invariant_string2, proginfo[1], generate_txt(average_tree2, []), nBAG)
 
-    row = [name, tot_time, samp_time, tree_time, samp_time/nBAG, tree_time/nBAG, nBAG,
-           NUM_RUNS, len(proginfo[1]), str(Bootstrapping), str(FIT_USED), proginfo[3]]
-    with open('invariants/used_time', 'a') as fd:
-        writer = csv.writer(fd)
-        writer.writerow(row)
+        tot_time = timeit.default_timer()-tot_time
+        row = [name, tot_time, samp_time, tree_time, samp_time/nBAG, tree_time/nBAG, nBAG,
+               NUM_RUNS, len(proginfo[1]), str(Bootstrapping), str(FIT_USED), proginfo[3]]
+        with open('invariants/used_time', 'a') as fd:
+            writer = csv.writer(fd)
+            writer.writerow(row)
+
+
+main()
