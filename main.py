@@ -2,9 +2,7 @@ from copy import deepcopy
 # import cvxpy as cp
 # from cvxpy.atoms.axis_atom import AxisAtom
 # from cvxpy.atoms.norm import norm
-from model_tree.models.linear_regr_constraint import linear_regr_constraint, linear_regr_constraint_L1, linear_regr_constraint_L2
-from model_tree.models.linear_regr_lasso import linear_regr_lasso
-from model_tree.models.linear_regr import linear_regr
+from model_tree.models.linear_regr_pnorm import linear_regr_2norm
 from model_tree.run_model_tree import runModelTree
 from src.data_utils import AggregateData
 from src.ex_prog import geo_0, geo_0a, geo_0b,  geo_0c, ex1, ex2, ex3a, ex3b, ex3, ex3nest, ex3hard
@@ -30,17 +28,17 @@ now = datetime.now()
 dt_string = now.strftime("%m:%d:%H:%M")
 
 # parameters that do not need to change when running experiements
-UPDATE_CSV = True  # False just want to fit learning and don't want collect data again
+UPDATE_CSV = False  # False just want to fit learning and don't want collect data again
 TESTING_KNOWN_MODEL = False
-FIT_USED = False  # FIT_USED False if require a truly linear moel
-FIT_intercept = False
-Bootstrapping = False
+FIT_USED = True  # FIT_USED False if require a truly linear model
+FIT_intercept = True
+Bootstrapping = True
 # only meaningful when Bootstrapping is True, it is the ratio of subsample size: sample size
 Bootstrapping_ratio = 1
 
 # May change while running experiements
 NUM_RUNS = int(sys.argv[1])
-PLOT_fitting = True
+PLOT_fitting = False
 PLOT_only = False
 # When not Bootstrapping, we sample independently for nBAG times
 # if Bootstrapping, then we only sample data once, and subsample to get bags;
@@ -290,14 +288,12 @@ def find_common_structure(treelist):
 
 def avg_models(models):
     modelmodel = np.mean(np.array([model.model for model in models]), axis=0)
-    modellambda = np.mean(np.array([model.lambd for model in models]))
-    return linear_regr_constraint(lambd=modellambda, model=modelmodel)
+    return linear_regr_2norm(fit_intercept=FIT_intercept, model=modelmodel)
 
 
 def median_models(models):
     modelmodel = np.median(np.array([model.model for model in models]), axis=0)
-    modellambda = np.median(np.array([model.lambd for model in models]))
-    return linear_regr_constraint(lambd=modellambda, model=modelmodel)
+    return linear_regr_2norm(fit_intercept=FIT_intercept, model=modelmodel)
 
 
 def aggregate_trees(treelist, aggre_method):
@@ -398,10 +394,7 @@ def main():
         samp_time = 0
         tree_time = 0
         regressors = [
-            # (linear_regr, "MSE"),
-            (linear_regr_constraint, "MSEwithConstraint"),
-            # (linear_regr_constraint_L1, "L1withConstraint"),
-            # (linear_regr_constraint_L2, "L2withConstraint")
+            (linear_regr_2norm, "2norm"),
         ]
         for regresser, norm in regressors:
             plot_fitting = PLOT_fitting

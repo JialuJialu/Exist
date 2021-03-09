@@ -579,11 +579,17 @@ def _splitter(node, model, header_init, sign,
                 if not all(split_conditions):
                     continue
 
+                # Decide what the new "not_to_fit" is
+                if not no_repeat:
+                    new_not_to_fit = []
+                else:
+                    new_not_to_fit = not_to_fit+[j_feature]
+
                 # Compute weight loss function
                 loss_left, model_left = _fit_model(
-                    X_left, y_left, model, not_to_fit=not_to_fit+[j_feature])
+                    X_left, y_left, model, not_to_fit=new_not_to_fit)
                 loss_right, model_right = _fit_model(
-                    X_right, y_right, model, not_to_fit=not_to_fit+[j_feature])
+                    X_right, y_right, model, not_to_fit=new_not_to_fit)
                 loss_split = math.sqrt(loss_left ** 2 + loss_right ** 2)
 
                 # print("Trying on {} based on {:.2f} with left loss {:.6f}, right loss {:.6f}, averaged loss {:.6f}, left has {:.0f}, right has {:.0f}".format(
