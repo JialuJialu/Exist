@@ -67,7 +67,7 @@ def ex(input, hists,  init_tuple,constraint\):
 Also see the example 0 below for how to instrument to a benchmark
 '''
 bool_space = np.linspace(0, 1, 2)
-non_neg_int_space = np.linspace(0, 4, 5)
+int_space = np.linspace(0, 4, 5)
 int_space = np.linspace(-10, 10, 21)
 prob_space = np.linspace(0, 1, 11)
 
@@ -225,7 +225,7 @@ def geo_0(progname, inpt, hists,  init_tuple):
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
                            qual_feature_indices=vI.init_var_indices)  # init_flip
     prob1 = inpt[0]
-    z = init_tuple["non_neg_int"][0]
+    z = init_tuple["int"][0]
     flip = init_tuple["bool"][0]
     init_z, init_flip = z, flip
     hists.record_predicate(
@@ -266,7 +266,7 @@ def exp0a(progname, inpt, hists,  init_tuple):
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
                            qual_feature_indices=vI.init_var_indices)  # init_flip
     prob1 = inpt[0]
-    z = init_tuple["non_neg_int"][0]
+    z = init_tuple["int"][0]
     flip = init_tuple["bool"][0]
     init_z, init_flip = z, flip
     hists.record_predicate(
@@ -314,8 +314,8 @@ def geo_0a(progname, inpt, hists,  init_tuple):
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
                            qual_feature_indices=vI.init_var_indices)
     prob1 = inpt[0]
-    z = init_tuple["non_neg_int"][0]
-    x = init_tuple["non_neg_int"][1]
+    z = init_tuple["int"][0]
+    x = init_tuple["int"][1]
     flip = init_tuple["bool"][0]
     init_z, init_x, init_flip = z, x, flip
     hists.record_predicate(
@@ -362,8 +362,8 @@ def geo_0b(progname, inpt, hists,  init_tuple):
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
                            qual_feature_indices=vI.init_var_indices)
     prob1 = inpt[0]
-    z = init_tuple["non_neg_int"][0]
-    i = init_tuple["non_neg_int"][1]
+    z = init_tuple["int"][0]
+    i = init_tuple["int"][1]
     flip = init_tuple["bool"][0]
     init_z, init_i, init_flip = z, i, flip
     hists.record_predicate(
@@ -408,7 +408,7 @@ def ex1(progname, inpt, hists,  init_tuple):
     prob1 = inpt[0]
     prob2 = inpt[1]
 
-    count = init_tuple["non_neg_int"][0]
+    count = init_tuple["int"][0]
     c1 = init_tuple["bool"][0]
     c2 = init_tuple["bool"][1]
     init_c1orc2 = (c1 or c2)
@@ -447,7 +447,7 @@ def exp1a(progname, inpt, hists,  init_tuple):
     prob1 = inpt[0]
     prob2 = inpt[1]
 
-    count = init_tuple["non_neg_int"][0]
+    count = init_tuple["int"][0]
     c1 = init_tuple["bool"][0]
     c2 = init_tuple["bool"][1]
     init_c1orc2 = (c1 or c2)
@@ -486,7 +486,7 @@ def exp1b(progname, inpt, hists,  init_tuple):
     prob1 = inpt[0]
     prob2 = inpt[1]
     # instrumented
-    count = init_tuple["non_neg_int"][0]
+    count = init_tuple["int"][0]
     c1 = init_tuple["bool"][0]
     c2 = init_tuple["bool"][1]
     init_c1orc2 = (c1 or c2)
@@ -524,7 +524,7 @@ def exp1c(progname, inpt, hists,  init_tuple):
                            qual_feature_indices=vI.init_var_indices)
     prob1 = inpt[0]
     prob2 = inpt[1]
-    count = init_tuple["non_neg_int"][0]
+    count = init_tuple["int"][0]
     c1 = init_tuple["bool"][0]
     c2 = init_tuple["bool"][1]
     init_c1orc2 = (c1 or c2)
@@ -571,9 +571,9 @@ def ex2(progname, inpt, hists,  init_tuple):
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
                            qual_feature_indices=vI.init_var_indices)  # the guard is b
     prob = inpt[0]
-    c = init_tuple["non_neg_int"][0]
-    b = init_tuple["non_neg_int"][1]
-    rounds = init_tuple["non_neg_int"][2]
+    c = init_tuple["int"][0]
+    b = init_tuple["int"][1]
+    rounds = init_tuple["int"][2]
     init_c = c
     init_b = b
     init_rounds = rounds
@@ -628,9 +628,9 @@ def ex4(progname, inpt, hists,  init_tuple):
                            qual_feature_indices=vI.init_var_indices)
     prob = 0.5
 
-    x = init_tuple["non_neg_int"][0]
-    y = init_tuple["non_neg_int"][1]
-    z = init_tuple["non_neg_int"][2]
+    x = init_tuple["int"][0]
+    y = init_tuple["int"][1]
+    z = init_tuple["int"][2]
     init_x, init_y, init_z = x, y, z
     hists.record_predicate(
         [init_x, init_y, init_z, 0 < init_x and init_x < init_y, init_x * (init_y - init_x), x, y, z, 0 < x and x < y, x * (y - x)])
@@ -700,9 +700,9 @@ def ex4a(progname, inpt, hists,  init_tuple):
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
                            qual_feature_indices=vI.init_var_indices)
     prob = 0.5
-    x = init_tuple["non_neg_int"][0]
-    y = init_tuple["non_neg_int"][1]
-    z = init_tuple["non_neg_int"][2]
+    x = init_tuple["int"][0]
+    y = init_tuple["int"][1]
+    z = init_tuple["int"][2]
     init_x, init_y, init_z = x, y, z
     hists.record_predicate(
         [init_x, init_y, init_z, init_x < init_y, init_x * (init_y - init_x), x, y, z, x < y, x * (y - x)])
@@ -743,7 +743,7 @@ def ex5p(progname, inpt, hists,  init_tuple):
                            qual_feature_indices=vI.init_var_indices)
 
     p = inpt[0]
-    x = init_tuple["non_neg_int"][0]
+    x = init_tuple["int"][0]
     y = 0
     z = init_tuple["bool"][0]
     init_x, init_y, init_z = x, y, z
@@ -783,8 +783,8 @@ def ex5yp(progname, inpt, hists,  init_tuple):
                            qual_feature_indices=vI.init_var_indices)
 
     p = inpt[0]
-    x = init_tuple["non_neg_int"][0]
-    y = init_tuple["non_neg_int"][1]
+    x = init_tuple["int"][0]
+    y = init_tuple["int"][1]
     z = init_tuple["bool"][0]
     init_x, init_y, init_z = x, y, z
     hists.record_predicate(
@@ -838,8 +838,8 @@ def ex5y(progname, inpt, hists,  init_tuple):
 
     p = 0.25
 
-    x = init_tuple["non_neg_int"][0]
-    y = init_tuple["non_neg_int"][1]
+    x = init_tuple["int"][0]
+    y = init_tuple["int"][1]
     z = init_tuple["bool"][0]
     init_x, init_y, init_z = x, y, z
     hists.record_predicate(
@@ -880,7 +880,7 @@ def ex5(progname, inpt, hists,  init_tuple):
                            qual_feature_indices=vI.init_var_indices)
 
     p = 0.25
-    x = init_tuple["non_neg_int"][0]
+    x = init_tuple["int"][0]
     y = 0
     z = init_tuple["bool"][0]
     init_x, init_y, init_z = x, y, z
@@ -957,9 +957,9 @@ def ex7(progname, inpt, hists,  init_tuple):
                            qual_feature_indices=vI.init_var_indices)
     p = inpt[0]
 
-    x = init_tuple["non_neg_int"][0]
-    y = init_tuple["non_neg_int"][1]
-    n = init_tuple["non_neg_int"][2]
+    x = init_tuple["int"][0]
+    y = init_tuple["int"][1]
+    n = init_tuple["int"][2]
     init_x, init_y, init_n = x, y, n
     hists.record_predicate(
         [init_x, init_y, init_n, p * init_n * init_y, x, y, n, p * n * y])
@@ -998,9 +998,9 @@ def ex8(progname, inpt, hists,  init_tuple):
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
                            qual_feature_indices=vI.init_var_indices)
     p = 0.25
-    x = init_tuple["non_neg_int"][0]
-    y = init_tuple["non_neg_int"][1]
-    n = init_tuple["non_neg_int"][2]
+    x = init_tuple["int"][0]
+    y = init_tuple["int"][1]
+    n = init_tuple["int"][2]
     init_x, init_y, init_n = x, y, n
     hists.record_predicate(
         [init_x, init_y, init_n * (init_n+1), init_n*init_y, x, y, n * (n+1), n*y])
@@ -1033,9 +1033,9 @@ def ex8p(progname, inpt, hists,  init_tuple):
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
                            qual_feature_indices=vI.init_var_indices)
     p = inpt[0]
-    x = init_tuple["non_neg_int"][0]
-    y = init_tuple["non_neg_int"][1]
-    n = init_tuple["non_neg_int"][2]
+    x = init_tuple["int"][0]
+    y = init_tuple["int"][1]
+    n = init_tuple["int"][2]
     init_x, init_y, init_n = x, y, n
     init1 = p * init_n * (init_n+1)
     init2 = (1-p)*init_n*init_y
@@ -1085,9 +1085,9 @@ def ex18(progname, inpt, hists,  init_tuple):
                            qual_feature_indices=vI.init_var_indices)
 
     prob = inpt[0]
-    n = init_tuple["non_neg_int"][0]
-    x = init_tuple["non_neg_int"][1]
-    M = init_tuple["non_neg_int"][2]
+    n = init_tuple["int"][0]
+    x = init_tuple["int"][1]
+    M = init_tuple["int"][2]
     init_x, init_n = x, n
     hists.record_predicate(
         [M * prob, init_x, init_n, init_n-M, init_n*prob, x, n, n-M, n*prob])
@@ -1118,8 +1118,8 @@ def ex20(progname, inpt, hists,  init_tuple):
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
                            qual_feature_indices=vI.init_var_indices)
 
-    n = init_tuple["non_neg_int"][0]
-    count = init_tuple["non_neg_int"][1]
+    n = init_tuple["int"][0]
+    count = init_tuple["int"][1]
     x1, x2, x3 = init_tuple["bool"][0], init_tuple["bool"][1], init_tuple["bool"][2]
     init_n, init_count, init_x1, init_x2, init_x3 = n, count, x1, x2, x3
     hists.record_predicate(
@@ -1161,9 +1161,9 @@ def ex3(progname, inpt, hists,  init_tuple):
     prob1 = inpt[0]
     prob2 = inpt[1]
 
-    x = init_tuple["non_neg_int"][0]
+    x = init_tuple["int"][0]
     flip = init_tuple["bool"][0]
-    x = init_tuple["non_neg_int"][0]
+    x = init_tuple["int"][0]
     flip1 = init_tuple["bool"][0]
     flip2 = init_tuple["bool"][1]
     init_x = x
@@ -1207,7 +1207,7 @@ def ex3hard(progname, inpt, hists,  init_tuple):
     prob1 = inpt[0]
     prob2 = inpt[1]
 
-    x = init_tuple["non_neg_int"][0]
+    x = init_tuple["int"][0]
     flip1 = init_tuple["bool"][0]
     flip2 = init_tuple["bool"][1]
     init_x = x
@@ -1251,7 +1251,7 @@ def ex3nest(progname, inpt, hists,  init_tuple):
     prob1 = inpt[0]
     prob2 = inpt[1]
 
-    x = init_tuple["non_neg_int"][0]
+    x = init_tuple["int"][0]
     flip1 = init_tuple["bool"][0]
     flip2 = init_tuple["bool"][1]
     init_x = x
@@ -1311,8 +1311,8 @@ def ex9(progname, inpt, hists,  init_tuple):
                            qual_feature_indices=vI.init_var_indices)
     p = 0.5
 
-    x = init_tuple["non_neg_int"][0]
-    n = init_tuple["non_neg_int"][1]
+    x = init_tuple["int"][0]
+    n = init_tuple["int"][1]
     init_x, init_n = x, n
     hists.record_predicate(
         [init_x, init_n, init_n * (init_n), x, n, n * n])
@@ -1336,8 +1336,8 @@ def ex9p(progname, inpt, hists,  init_tuple):
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
                            qual_feature_indices=vI.init_var_indices)
     p = inpt[0]
-    x = init_tuple["non_neg_int"][0]
-    n = init_tuple["non_neg_int"][1]
+    x = init_tuple["int"][0]
+    n = init_tuple["int"][1]
     init_x, init_n = x, n
     hists.record_predicate(
         [init_x, init_n, p * init_n, p * init_n * init_n, x, n, p * n, p * n * n])
@@ -1376,9 +1376,9 @@ def ex10(progname, inpt, hists,  init_tuple):
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
                            qual_feature_indices=vI.init_var_indices)
     p = 0.5
-    x = init_tuple["non_neg_int"][0]
-    n = init_tuple["non_neg_int"][1]
-    y = init_tuple["non_neg_int"][2]
+    x = init_tuple["int"][0]
+    n = init_tuple["int"][1]
+    y = init_tuple["int"][2]
     init_x, init_n, init_y = x, n, y
     hists.record_predicate(
         [init_x, init_n, init_y, init_n**2, init_n * init_x, init_n * init_y, init_x * init_y,
@@ -1596,7 +1596,7 @@ def ex12(progname, inpt, hists,  init_tuple):
                            qual_feature_indices=vI.init_var_indices)
     prob1, prob2 = inpt[0], inpt[1]
 
-    x = init_tuple["non_neg_int"][0]
+    x = init_tuple["int"][0]
     init_x = x
     hists.record_predicate([init_x, x])
     while(x == 0):
@@ -1646,7 +1646,7 @@ def exp12(progname, inpt, hists,  init_tuple):
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
                            qual_feature_indices=vI.init_var_indices)
     prob1, prob2 = inpt[0], inpt[1]
-    x = init_tuple["non_neg_int"][0] % 3 - 1  # -1, 0, 1 are all possible
+    x = init_tuple["int"][0] % 3 - 1  # -1, 0, 1 are all possible
     assert (x == -1) or (x == 0) or (x == 1)
     init_x = x
     hists.record_predicate([prob1*prob1, prob2*prob2, init_x, x])
@@ -1901,8 +1901,8 @@ def ex15(progname, inpt, hists,  init_tuple):
                            qual_feature_indices=vI.init_var_indices)
     prob = inpt[0]
 
-    x = init_tuple["non_neg_int"][0]
-    count = init_tuple["non_neg_int"][1]
+    x = init_tuple["int"][0]
+    count = init_tuple["int"][1]
     init_x, init_count = x, count
     hists.record_predicate([init_x, init_count, x, count])
     while(x <= 10):
@@ -1929,8 +1929,8 @@ def ex15a(progname, inpt, hists,  init_tuple):
                            qual_feature_indices=vI.init_var_indices)
     prob = inpt[0]
 
-    x = init_tuple["non_neg_int"][0]
-    count = init_tuple["non_neg_int"][1]
+    x = init_tuple["int"][0]
+    count = init_tuple["int"][1]
     init_x, init_count = x, count
     hists.record_predicate([init_x, init_count, x, count])
     while(x <= 10):
@@ -2008,8 +2008,8 @@ def ex22(progname, inpt, hists,  init_tuple):
                            qual_feature_indices=vI.init_var_indices)
     prob = inpt[0]
 
-    x = init_tuple["non_neg_int"][0]
-    z = init_tuple["non_neg_int"][1]
+    x = init_tuple["int"][0]
+    z = init_tuple["int"][1]
     init_x, init_z = x, z
     hists.record_predicate(
         [init_x, init_x/prob, init_z, x, x/prob, z])
@@ -2056,8 +2056,8 @@ def ex21(progname, inpt, hists,  init_tuple):
                            qual_feature_indices=vI.init_var_indices)
     prob = inpt[0]
 
-    x = init_tuple["non_neg_int"][0]
-    z = init_tuple["non_neg_int"][1]
+    x = init_tuple["int"][0]
+    z = init_tuple["int"][1]
     init_x, init_z = x, z
     hists.record_predicate(
         [init_x, init_x/(2-prob), init_z, x, x/(2-prob), z])
@@ -2093,8 +2093,8 @@ def exp21(progname, inpt, hists,  init_tuple):
         hists = RecordStat(preds_str, wp, known_inv, known_inv_model, ninput=vI.ninput,
                            qual_feature_indices=vI.init_var_indices)
     prob = inpt[0]
-    x = init_tuple["non_neg_int"][0]
-    z = init_tuple["non_neg_int"][1]
+    x = init_tuple["int"][0]
+    z = init_tuple["int"][1]
     init_x, init_z = x, z
     hists.record_predicate(
         [prob/(1-prob), prob*prob, init_x, init_x/(2-prob), init_z, x, x/(2-prob), z])
@@ -2132,8 +2132,8 @@ def geo_0c(progname, inpt, hists,  init_tuple):
                            qual_feature_indices=vI.init_var_indices)
     prob = inpt[0]
 
-    z = init_tuple["non_neg_int"][0]
-    i = init_tuple["non_neg_int"][1]
+    z = init_tuple["int"][0]
+    i = init_tuple["int"][1]
     flip = init_tuple["bool"][0]
     init_z, init_i, init_flip = z, i, flip
     hists.record_predicate(
@@ -2193,9 +2193,9 @@ def ex13(progname, inpt, hists,  init_tuple, constraint):
         prob = 0.35 + 2 * prob
 
     # takes too long to run for small probability(p<=0.31) according to notes
-    t = 3 * init_tuple["non_neg_int"][0] + 10  # make t greater than h
-    h = init_tuple["non_neg_int"][1]
-    count = init_tuple["non_neg_int"][2]
+    t = 3 * init_tuple["int"][0] + 10  # make t greater than h
+    h = init_tuple["int"][1]
+    count = init_tuple["int"][2]
     init_t = t
     init_h = h
     init_count = count
@@ -2360,7 +2360,7 @@ def ex3a(progname, inpt, hists,  init_tuple, constraint):
         hists.record_hard_constraint(
             [prob1/(1-prob1), prob2/(1-prob2)], [x, flip], not(flip == 0), True, x)
     else:  # instrumented programs
-        x = init_tuple["non_neg_int"][0]
+        x = init_tuple["int"][0]
         flip = init_tuple["bool"][0]
         init_x = x
         init_flip = flip
@@ -2417,7 +2417,7 @@ def exp3a(progname, inpt, hists,  init_tuple, constraint):
         hists.record_hard_constraint(
             [prob1/(1-prob1), prob2/(1-prob2), prob1*prob1, prob2*prob2, prob1*prob2], [x, flip], not(flip == 0), True, x)
     else:  # instrumented programs
-        x = init_tuple["non_neg_int"][0]
+        x = init_tuple["int"][0]
         flip = init_tuple["bool"][0]
         init_x = x
         init_flip = flip
@@ -2480,7 +2480,7 @@ def ex3b(progname, inpt, hists,  init_tuple, constraint):
         hists.record_hard_constraint(
             [prob1/(1-prob1), prob2/(1-prob2)], [x, flip], not(flip == 0), True, x)
     else:  # instrumented programs
-        x = init_tuple["non_neg_int"][0]
+        x = init_tuple["int"][0]
         flip = init_tuple["bool"][0]
         while (flip == 0):
             d1 = bernoulli.rvs(size=1, p=prob1)
@@ -2488,7 +2488,7 @@ def ex3b(progname, inpt, hists,  init_tuple, constraint):
                 x = x + 1
             else:
                 flip = 1
-        x = init_tuple["non_neg_int"][0]
+        x = init_tuple["int"][0]
         flip = init_tuple["bool"][0]
         init_x = x
         init_flip = flip
@@ -2532,7 +2532,7 @@ def exp3b(progname, inpt, hists,  init_tuple, constraint):
         hists.record_hard_constraint(
             [prob1/(1-prob1), prob2/(1-prob2), prob1*prob1, prob2*prob2, prob1*prob2], [x, flip], not(flip == 0), True, x)
     else:  # instrumented programs
-        x = init_tuple["non_neg_int"][0]
+        x = init_tuple["int"][0]
         flip = init_tuple["bool"][0]
         while (flip == 0):
             d1 = bernoulli.rvs(size=1, p=prob1)
@@ -2540,7 +2540,7 @@ def exp3b(progname, inpt, hists,  init_tuple, constraint):
                 x = x + 1
             else:
                 flip = 1
-        x = init_tuple["non_neg_int"][0]
+        x = init_tuple["int"][0]
         flip = init_tuple["bool"][0]
         init_x = x
         init_flip = flip

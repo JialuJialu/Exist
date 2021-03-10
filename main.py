@@ -1,9 +1,6 @@
 from copy import deepcopy
-# import cvxpy as cp
-# from cvxpy.atoms.axis_atom import AxisAtom
-# from cvxpy.atoms.norm import norm
-from model_tree.models.linear_regr_pnorm import linear_regr_2norm
 from model_tree.run_model_tree import runModelTree
+from model_tree.models.linear_regr_pnorm import linear_regr_2norm
 from src.data_utils import AggregateData
 from src.ex_prog import geo_0, geo_0a, geo_0b,  geo_0c, ex1, ex2, ex3a, ex3b, ex3, ex3nest, ex3hard
 from src.ex_prog import ex4, ex4a, ex5, ex5y, ex5yp, ex5p, ex7, ex8, ex8p, ex9, ex9p, ex10,  ex11, ex11a
@@ -23,46 +20,81 @@ from datetime import datetime
 from collections import defaultdict
 import sys
 import csv
+
 # datetime object containing current date and time
 now = datetime.now()
 dt_string = now.strftime("%m:%d:%H:%M")
 
-# parameters that do not need to change when running experiements
-UPDATE_CSV = False  # False just want to fit learning and don't want collect data again
+'''
+A set of parameters that helps experimenting with the tool.
+Default setup if you just want to run the algorithm we described in the paper:
+UPDATE_CSV = True
 TESTING_KNOWN_MODEL = False
-FIT_USED = True  # FIT_USED False if require a truly linear model
-FIT_intercept = True
-Bootstrapping = True
-# only meaningful when Bootstrapping is True, it is the ratio of subsample size: sample size
-Bootstrapping_ratio = 1
-
-# May change while running experiements
-NUM_RUNS = int(sys.argv[1])
 PLOT_fitting = False
 PLOT_only = False
-# When not Bootstrapping, we sample independently for nBAG times
-# if Bootstrapping, then we only sample data once, and subsample to get bags;
-# numBAG = [1, 2, 5, 10, 15]
-numBAG = [2]
+Bootstrapping = False
+Bootstrapping_ratio = 1
+PURE_linear = False
+FIT_intercept = True
+'''
+# whether to collect the data again and update CSV or retriving data from
+# existing CSV and learn the model. CSV files are under directory `csv`.
+UPDATE_CSV = False
+# whether to test how a known model fits data, v.s. learn a model from data without prior knowledge
+TESTING_KNOWN_MODEL = False
+# whether to plot how the model fits data. Plotting gives us insights into how the
+# model fits the data but takes time. Plots are under directory `output`.
+PLOT_fitting = True
+# PLOT_only only makes sense when PLOT_fitting is True. It specifies whether to
+# only plot with the historical data and model, or learn a model again before plotting.
+# If PLOT_only is True, there must be existing data in the `output` directory in the format of `.npy`.
+PLOT_only = True
+# whether get multiple samples of data by bootstrapping, instead of by rerunning the program
+Bootstrapping = False
+# Bootstrapping_ratio is only meaningful when Bootstrapping is True.
+# It is the ratio of subsample size to the sample size.
+Bootstrapping_ratio = 1
+# Given that we fit data with model trees that having linear models on leaves:
+# PURE_linear specifies whether to make the restriction that the whole model tree (as a whole)
+# should be a linear model;
+PURE_linear = True
+# Fit_intercept specifies whether we let the leave model,
+# which is the linear function to fit with intercept.
+FIT_intercept = True
+
+'''
+A set of parameters to determine how much data to collect for the tool. 
+These are the set of hyper-parameters of the tool. 
+'''
+# The number of runs from each initialization
+NUM_RUNS = int(sys.argv[1])
+# We learn max(numBAG) model trees in total
+# When Bootstrapping is False, we recollect the data multiple times to train multiple models;
+# When Bootstrapping is True, we only collect the data once,
+# and subsample to get `bags` and learn multiple models.
+numBAG = [3]
+# Max depth of the model tree
 MAX_DEPTH = 2
+# Minimum number of samples
 MIN_SAMPLE_LEAF = 5
-
+# The space for boolean on which we perform grid search
 bool_space = np.linspace(0, 1, 2)
-non_neg_int_space = np.linspace(0, 4, 5)
-trivial_space = np.linspace(0, 0, 1)
+# The space for integer on which we perform grid search
+int_space = np.linspace(0, 4, 5)
+# The space for probability choices on which we perform grid search
 prob_space = np.linspace(0, 1, 11)
-
-# ---
+# Grids of initial states for each program based on the number of variables
+# (that exist in multiple iterations) of each type in them
 INIT_GRID2bool1int = [{"bool": [bool1, bool2],
-                       "non_neg_int": [int1]}
+                       "int": [int1]}
                       for bool1 in bool_space
                       for bool2 in bool_space
-                      for int1 in non_neg_int_space]
+                      for int1 in int_space]
 
 INIT_GRID1bool1int = [{"bool": [bool1],
-                       "non_neg_int": [int1]}
+                       "int": [int1]}
                       for bool1 in bool_space
-                      for int1 in non_neg_int_space]
+                      for int1 in int_space]
 
 INIT_GRID1bool1float = [{"bool": [bool1],
                          "float": [float1]}
@@ -70,102 +102,108 @@ INIT_GRID1bool1float = [{"bool": [bool1],
                         for float1 in prob_space]
 
 INIT_GRID1bool2int = [{"bool": [bool1],
-                       "non_neg_int": [int1, int2]}
+                       "int": [int1, int2]}
                       for bool1 in bool_space
-                      for int1 in non_neg_int_space
-                      for int2 in non_neg_int_space]
+                      for int1 in int_space
+                      for int2 in int_space]
 
 INIT_GRID3bool2int = [{"bool": [bool1, bool2, bool3],
-                       "non_neg_int": [int1, int2]}
+                       "int": [int1, int2]}
                       for bool1 in bool_space
                       for bool2 in bool_space
                       for bool3 in bool_space
-                      for int1 in non_neg_int_space
-                      for int2 in non_neg_int_space]
+                      for int1 in int_space
+                      for int2 in int_space]
 
 INIT_GRID0bool3int = [{"bool": [],
-                       "non_neg_int": [int1, int2, int3]}
-                      for int1 in non_neg_int_space
-                      for int2 in non_neg_int_space
-                      for int3 in non_neg_int_space]
+                       "int": [int1, int2, int3]}
+                      for int1 in int_space
+                      for int2 in int_space
+                      for int3 in int_space]
 
 INIT_GRID2bool0int = [{"bool": [bool1, bool2],
-                       "non_neg_int": []}
+                       "int": []}
                       for bool1 in bool_space
                       for bool2 in bool_space]
 
 INIT_GRID0bool1int = [{"bool": [],
-                       "non_neg_int": [int1]}
-                      for int1 in non_neg_int_space]
+                       "int": [int1]}
+                      for int1 in int_space]
 
 INIT_GRID1bool0int = [{"bool": [bool1],
-                       "non_neg_int": []}
+                       "int": []}
                       for bool1 in bool_space]
 
 INIT_GRID0bool2int = [{"bool": [],
-                       "non_neg_int": [int1, int2]}
-                      for int1 in non_neg_int_space
-                      for int2 in non_neg_int_space]
+                       "int": [int1, int2]}
+                      for int1 in int_space
+                      for int2 in int_space]
 
-
+# The grids of choices for probabilities. We seperated them out from other
+# variables when experimenting the idea, but later decided to treat them the
+# same way as the other variables. They can be merged with the previous INIT_GRIDs
+# but we kept the old implementation for convenience.
+trivial_space = np.linspace(0, 0, 1)
 normal = np.linspace(0.1, 0.9, 9)
 fine_grid = np.linspace(0.05, 0.95, 19)
-GAP = normal[1] - normal[0]
-inptinpts0 = [(prob1, prob2, prob3)
+probinpts0 = [(prob1, prob2, prob3)
               for prob1 in trivial_space for prob2 in trivial_space for prob3 in trivial_space]
-inptinpts1 = [(prob1, prob2, prob3)
+probinpts1 = [(prob1, prob2, prob3)
               for prob1 in normal for prob2 in trivial_space for prob3 in trivial_space]
-inptinpts2 = [(prob1, prob2, prob3)
+probinpts2 = [(prob1, prob2, prob3)
               for prob1 in normal for prob2 in normal for prob3 in trivial_space]
 
 
 '''
-"examplename": (example, inptinpts(number of probabilities it takes),
-INIT_GRID(based on the number of each type needed to initialize the program state),
-Uncon_GRID(based on the number of each type needed to initialize the program state)
-)
+Info of example programs in the following format: 
+"name": (instrumented programs, probinpts(choices for probabilities), INIT_GRID, 
+sign of predicates in the model tree)
+
+For the sign, "<=" and ">" would be symmetric because "a > b" is just "not a <= b"; 
+and since the set of values we try in INIT_GRID and probinpts are discrete, 
+"<" and ">=" will have the same expressive power as ">" and "<=". 
+Thus, we can just input "<=" by default unless we want to try "==". 
 '''
-# TODO: supply sign for in the end of pair as in geo_0
 progs = {
     # 100 * 2 * 5 * 20 * 2
-    # "geo_0": (geo_0, inptinpts1, INIT_GRID1bool1int, "<="),
-    "geo_0a": (geo_0a, inptinpts1, INIT_GRID1bool2int, "<="),
-    # "geo_0b": (geo_0b, inptinpts1, INIT_GRID1bool2int), #TODO
-    # "geo_0c": (geo_0c, inptinpts1, INIT_GRID1bool2int), #TODO
-    # "ex2": (ex2, inptinpts2, INIT_GRID0bool3int,">"),
-    # "ex3": (ex3, inptinpts2, INIT_GRID2bool1int), #TODO
-    # "ex3nest": (ex3nest, inptinpts2, INIT_GRID2bool1int, ">"),
-    # "exp3nest_a": (exp3nest_a, inptinpts2, INIT_GRID2bool1int, ">"),
-    # "ex3a": (ex3a, inptinpts2, INIT_GRID1bool1int, ">"),
-    # "ex3b": (ex3b, inptinpts2, INIT_GRID1bool1int,">"),
-    # "ex4": (ex4, inptinpts0, INIT_GRID0bool3int, "<="),
-    # "ex5": (ex5, inptinpts0, INIT_GRID1bool2int, "<="),
-    # "ex5y": (ex5y, inptinpts0, INIT_GRID1bool2int, "<="),
-    # "ex5yp": (ex5yp, inptinpts1, INIT_GRID1bool2int, "<="),
-    # "ex5p": (ex5p, inptinpts1, INIT_GRID1bool2int, "<="),
-    # "ex7": (ex7, inptinpts1, INIT_GRID0bool3int,"<="),
-    # "ex8": (ex8, inptinpts1, INIT_GRID0bool3int, "<="),
-    # "ex8a": (ex8a, inptinpts1, INIT_GRID0bool3int, "<="),
-    # "ex9": (ex9, inptinpts0, INIT_GRID0bool2int, "<="),
-    # "ex9p": (ex9p, inptinpts1, INIT_GRID0bool2int, "<="),
-    # "ex10": (ex10, inptinpts0, INIT_GRID0bool3int,"<="),
-    # "ex11": (ex11, inptinpts1, INIT_GRID2bool0int, "<="),
-    # "ex11a": (ex11a, inptinpts1, INIT_GRID2bool0int,"<="),
-    # "ex12": (ex12, inptinpts2, INIT_GRID0bool1int,"<="),
-    # "ex13": (ex13, inptinpts2, INIT_GRID0bool3int),
-    # "ex15": (ex15, inptinpts0, INIT_GRID0bool2int, "<="),
-    # "ex15a": (ex15a, inptinpts0, INIT_GRID0bool2int, "<="),
-    # "ex17": (ex17, inptinpts1, INIT_GRID1bool1float,"=="),
-    # "ex18": (ex18, inptinpts1, INIT_GRID0bool3int,"<="),
-    # "ex19": (ex19, inptinpts2, INIT_GRID2bool0int,">"),
-    # "exp19a": (exp19a, inptinpts2, INIT_GRID2bool0int),
-    # "exp19b": (exp19b, inptinpts2, INIT_GRID2bool0int),
-    # "ex20": (ex20, inptinpts1, INIT_GRID3bool2int,">"),
-    # "ex20a": (ex20a, inptinpts1, INIT_GRID3bool2int),
-    # "ex21": (ex21, inptinpts1, INIT_GRID0bool2int, "<="),
-    # "exp0a": (exp0a, inptinpts1, INIT_GRID1bool1int),
-    # "ex3a": (exp3a, inptinpts2, INIT_GRID1bool1int),
-    # "ex3b": (exp3b, inptinpts2, INIT_GRID1bool1int),
+    # "geo_0": (geo_0, probinpts1, INIT_GRID1bool1int, "<="),
+    "geo_0a": (geo_0a, probinpts1, INIT_GRID1bool2int, "<="),
+    # "geo_0b": (geo_0b, probinpts1, INIT_GRID1bool2int), #TODO
+    # "geo_0c": (geo_0c, probinpts1, INIT_GRID1bool2int), #TODO
+    # "ex2": (ex2, probinpts2, INIT_GRID0bool3int,"<="),
+    # "ex3": (ex3, probinpts2, INIT_GRID2bool1int), #TODO
+    # "ex3nest": (ex3nest, probinpts2, INIT_GRID2bool1int, "<="),
+    # "exp3nest_a": (exp3nest_a, probinpts2, INIT_GRID2bool1int, "<="),
+    # "ex3a": (ex3a, probinpts2, INIT_GRID1bool1int, "<="),
+    # "ex3b": (ex3b, probinpts2, INIT_GRID1bool1int,"<="),
+    # "ex4": (ex4, probinpts0, INIT_GRID0bool3int, "<="),
+    # "ex5": (ex5, probinpts0, INIT_GRID1bool2int, "<="),
+    # "ex5y": (ex5y, probinpts0, INIT_GRID1bool2int, "<="),
+    # "ex5yp": (ex5yp, probinpts1, INIT_GRID1bool2int, "<="),
+    # "ex5p": (ex5p, probinpts1, INIT_GRID1bool2int, "<="),
+    # "ex7": (ex7, probinpts1, INIT_GRID0bool3int,"<="),
+    # "ex8": (ex8, probinpts1, INIT_GRID0bool3int, "<="),
+    # "ex8a": (ex8a, probinpts1, INIT_GRID0bool3int, "<="),
+    # "ex9": (ex9, probinpts0, INIT_GRID0bool2int, "<="),
+    # "ex9p": (ex9p, probinpts1, INIT_GRID0bool2int, "<="),
+    # "ex10": (ex10, probinpts0, INIT_GRID0bool3int,"<="),
+    # "ex11": (ex11, probinpts1, INIT_GRID2bool0int, "<="),
+    # "ex11a": (ex11a, probinpts1, INIT_GRID2bool0int,"<="),
+    # "ex12": (ex12, probinpts2, INIT_GRID0bool1int,"<="),
+    # "ex13": (ex13, probinpts2, INIT_GRID0bool3int),
+    # "ex15": (ex15, probinpts0, INIT_GRID0bool2int, "<="),
+    # "ex15a": (ex15a, probinpts0, INIT_GRID0bool2int, "<="),
+    # "ex17": (ex17, probinpts1, INIT_GRID1bool1float,"=="),
+    # "ex18": (ex18, probinpts1, INIT_GRID0bool3int,"<="),
+    # "ex19": (ex19, probinpts2, INIT_GRID2bool0int,"<="),
+    # "exp19a": (exp19a, probinpts2, INIT_GRID2bool0int),
+    # "exp19b": (exp19b, probinpts2, INIT_GRID2bool0int),
+    # "ex20": (ex20, probinpts1, INIT_GRID3bool2int,"<="),
+    # "ex20a": (ex20a, probinpts1, INIT_GRID3bool2int),
+    # "ex21": (ex21, probinpts1, INIT_GRID0bool2int, "<="),
+    # "exp0a": (exp0a, probinpts1, INIT_GRID1bool1int),
+    # "ex3a": (exp3a, probinpts2, INIT_GRID1bool1int),
+    # "ex3b": (exp3b, probinpts2, INIT_GRID1bool1int),
 }  # programs to run
 
 
@@ -339,7 +377,7 @@ def find_most_common_structure(classified_tree_list):
     most_common_structure_treeclass = None
     maxlen = 0
     for _, treeclass in classified_tree_list.items():
-        if len(treeclass) > maxlen:
+        if len(treeclass) <= maxlen:
             maxlen = len(treeclass)
             most_common_structure_treeclass = treeclass
     return most_common_structure_treeclass
@@ -355,7 +393,7 @@ def write_to_csv(learned_inv):
     learned_inv_dict["prob_grid_size"] = learnd_inv_array[:, 4]
     learned_inv_dict["Bootstrapping_subsampling"] = str(Bootstrapping)
     learned_inv_dict["Aggregate_size"] = learnd_inv_array[:, 5]
-    learned_inv_dict["use_var_more_than_once"] = str(FIT_USED)
+    learned_inv_dict["purely linear"] = str(PURE_linear)
     learned_inv_dict["NUM_RUNS"] = str(NUM_RUNS)
     learned_inv_dict["Bootstrapping_ratio"] = str(Bootstrapping_ratio)
     df = pd.DataFrame.from_dict(learned_inv_dict)
@@ -406,8 +444,8 @@ def main():
                 samp_time = samp_time + timeit.default_timer() - time
             treelist = []
             for T in range(nBAG):
-                filename = "{}_{}".format(name, T)
                 if not Bootstrapping:
+                    filename = "{}_{}".format(name, T)
                     time = timeit.default_timer()
                     qual_features_indices, known_inv, known_model = get_stats(
                         name, proginfo, filename)
@@ -419,12 +457,12 @@ def main():
                                  PLOT_only, plot_fitting,
                                  Bootstrapping, Bootstrapping_ratio,
                                  sign=list(proginfo)[-1],
-                                 fit_used=FIT_USED, max_depth=MAX_DEPTH,
+                                 pure_linear=PURE_linear, max_depth=MAX_DEPTH,
                                  min_samples_leaf=MIN_SAMPLE_LEAF)
 
                 invariant, inv_func_recurse, generate_txt, learned_tree = m.run()
-                if TESTING_KNOWN_MODEL:
-                    return
+                if TESTING_KNOWN_MODEL or PLOT_only:
+                    continue
                 picklename = os.path.join(
                     "pickle", "{}.p".format(filename))
                 pickle.dump(learned_tree, open(picklename, 'wb'))
@@ -466,7 +504,7 @@ def main():
 
         tot_time = timeit.default_timer()-tot_time
         row = [name, tot_time, samp_time, tree_time, samp_time/nBAG, tree_time/nBAG, nBAG,
-               NUM_RUNS, len(proginfo[1]), str(Bootstrapping), str(FIT_USED), proginfo[3]]
+               NUM_RUNS, len(proginfo[1]), str(Bootstrapping), str(PURE_linear), proginfo[3]]
         with open('invariants/used_time', 'a') as fd:
             writer = csv.writer(fd)
             writer.writerow(row)

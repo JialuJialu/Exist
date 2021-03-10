@@ -14,24 +14,24 @@ from model_tree.src.utils import load_csv_data, cross_validate, load_csv_data_no
 
 
 class runModelTree(object):
-    def __init__(self, model, filename, norm, qual_feature_indices, known_inv, known_model, testing_known_model, plot_only, plot_fitting, bag, sample_ratio, sign, fit_used, max_depth, min_samples_leaf, mode="regr"):
+    def __init__(self, model, filename, norm, qual_feature_indices, known_inv, known_model, testing_known_model, plot_only, plot_fitting, bootstrapping, sample_ratio, sign, pure_linear, max_depth, min_samples_leaf, mode="regr"):
 
         self.model = model
         self.max_depth = max_depth
         self.min_samples_leaf = min_samples_leaf
         self.qual_feature_indices = qual_feature_indices
         self.sign = sign
-        self.fit_used = fit_used
+        self.pure_linear = pure_linear
         self.mode = mode
         self.known_inv = known_inv
         self.known_model = known_model
-        assert not (plot_fitting and plot_only)
+        assert not (not plot_fitting and plot_only)
         self.plot_fitting = plot_fitting
         self.plot_only = plot_only
         self.testing_known_model = testing_known_model
         self.folder = "csv"
         self.norm = norm
-        self.bag = bag
+        self.bootstrapping = bootstrapping
         self.sample_ratio = sample_ratio
         self.filename = filename
 
@@ -48,7 +48,7 @@ class runModelTree(object):
         X_init, y_post, header_init = load_csv_data(
             data_csv_data_filename, mode=mode, verbose=True)
         assert len(X_init) == len(y_post)
-        if self.bag:
+        if self.bootstrapping:
             b = len(X_init)
             sample_init = np.random.choice(
                 np.array(b), int(b * self.sample_ratio), replace=True)
@@ -57,7 +57,7 @@ class runModelTree(object):
         leaf_model = self.model
         # Build model tree
         model_tree = ModelTreeInv(leaf_model, header_init,
-                                  self.fit_used,
+                                  self.pure_linear,
                                   testing_known_model=self.testing_known_model,
                                   known_model=self.known_model,
                                   max_depth=self.max_depth,
@@ -80,7 +80,9 @@ class runModelTree(object):
                 output_filename += "_known_inv"
             else:
                 output_filename += "_learned"
-            model_tree.plot_fitting_hist(output_filename, True, header)
+            model_tree.plot_fitting_hist(
+                output_filename, just_plot=True, feature_names=header)
+            return None, None, None, None
         else:
             print("Training model tree with '{}'...".format(
                 leaf_model.__class__.__name__))
@@ -96,7 +98,7 @@ class runModelTree(object):
                 header)
             if self.plot_fitting:
                 model_tree.plot_fitting_hist(
-                    output_filename+"_fitting", self.plot_only, header)
+                    output_filename+"_fitting", just_plot=False, feature_names=header)
 
         # ====================
         # Save model tree results
@@ -106,12 +108,5 @@ class runModelTree(object):
                 "output", "{}.p".format(filename))
             print("Saving model tree to '{}'...".format(model_tree_filename))
             pickle.dump(leaf_model, open(model_tree_filename, 'wb'))
-
-        # # ====================
-        # # Cross-validate model tree
-        # # ====================
-        # if cross_validation and (not self.use_inv):
-        #     cross_validate(model_tree, X, y, kfold=5, seed=1)
-        # TODO
 
         return invariant_string, generate_invariant, generate_txt, learned_tree
