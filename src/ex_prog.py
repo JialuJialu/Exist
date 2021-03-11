@@ -95,21 +95,21 @@ class model_maker:
         func_array = np.array(func_array)
         self.func_array = func_array
         self.linear_model = lambda x: np.dot(func_array.T, np.array(x))
-        self.loss_func = ""
+        self.leafmodelname = ""
 
     def predict(self, X):
         return np.array([self.linear_model(s) for s in X])
 
-    def loss(self, X, y, y_pred, loss_func, normp):
+    def loss(self, X, y, y_pred, leafmodelname, normp=2):
         if y.shape != y_pred.shape:
             pdb.set_trace()
-        if loss_func == "MSE" or "MSEwithConstraint":
-            self.loss_func = loss_func
+        if leafmodelname == "MSE" or "2norm":
+            self.leafmodelname = leafmodelname
             return mean_squared_error(y, y_pred)
-        elif loss_func == "pnorm":
+        elif leafmodelname == "pnorm":
             from cvxpy.atoms.axis_atom import AxisAtom
             from cvxpy.atoms.norm import norm
-            self.loss_func = "{}_{}".format(loss_func, normp)
+            self.leafmodelname = "{}_{}".format(leafmodelname, normp)
             return norm(y_pred - y, p=normp).value
         else:
             raise NormNameError("unrecognized norm names")
@@ -122,8 +122,8 @@ class model_maker:
                              for i in range(len(self.func_array))
                              if round(self.func_array[i], 1) != 0
                              ])
-        string += "\n{}".format(self.loss_func)
-        return string, "{}-norm".format(self.loss_func)
+        string += "\n{}".format(self.leafmodelname)
+        return string, "{}-norm".format(self.leafmodelname)
 
 
 class VarInfo:
@@ -223,7 +223,7 @@ def geo_0(progname, inpt, hists,  init_tuple):
             "easy_side": ">"
         }
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)  # init_flip
+                           variable_indices=vI.init_var_indices)  # init_flip
     prob1 = inpt[0]
     z = init_tuple["int"][0]
     flip = init_tuple["bool"][0]
@@ -264,7 +264,7 @@ def exp0a(progname, inpt, hists,  init_tuple):
             "easy_side": ">"
         }
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)  # init_flip
+                           variable_indices=vI.init_var_indices)  # init_flip
     prob1 = inpt[0]
     z = init_tuple["int"][0]
     flip = init_tuple["bool"][0]
@@ -312,7 +312,7 @@ def geo_0a(progname, inpt, hists,  init_tuple):
             "easy_side": ">"
         }
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     prob1 = inpt[0]
     z = init_tuple["int"][0]
     x = init_tuple["int"][1]
@@ -360,7 +360,7 @@ def geo_0b(progname, inpt, hists,  init_tuple):
                            "easy_side": ">"
                            }
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     prob1 = inpt[0]
     z = init_tuple["int"][0]
     i = init_tuple["int"][1]
@@ -404,7 +404,7 @@ def ex1(progname, inpt, hists,  init_tuple):
                            "easy_side": ">"
                            }
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     prob1 = inpt[0]
     prob2 = inpt[1]
 
@@ -443,7 +443,7 @@ def exp1a(progname, inpt, hists,  init_tuple):
                            "easy_side": ">"
                            }
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     prob1 = inpt[0]
     prob2 = inpt[1]
 
@@ -482,7 +482,7 @@ def exp1b(progname, inpt, hists,  init_tuple):
                            "easy_side": ">"
                            }
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     prob1 = inpt[0]
     prob2 = inpt[1]
     # instrumented
@@ -521,7 +521,7 @@ def exp1c(progname, inpt, hists,  init_tuple):
                            "easy_side": ">"
                            }
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     prob1 = inpt[0]
     prob2 = inpt[1]
     count = init_tuple["int"][0]
@@ -569,7 +569,7 @@ def ex2(progname, inpt, hists,  init_tuple):
                            "easy_side": "<="
                            }
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)  # the guard is b
+                           variable_indices=vI.init_var_indices)  # the guard is b
     prob = inpt[0]
     c = init_tuple["int"][0]
     b = init_tuple["int"][1]
@@ -625,7 +625,7 @@ def ex4(progname, inpt, hists,  init_tuple):
                            }
 
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     prob = 0.5
 
     x = init_tuple["int"][0]
@@ -698,7 +698,7 @@ def ex4a(progname, inpt, hists,  init_tuple):
                            }
 
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     prob = 0.5
     x = init_tuple["int"][0]
     y = init_tuple["int"][1]
@@ -740,7 +740,7 @@ def ex5p(progname, inpt, hists,  init_tuple):
         }
 
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
 
     p = inpt[0]
     x = init_tuple["int"][0]
@@ -780,7 +780,7 @@ def ex5yp(progname, inpt, hists,  init_tuple):
         }
 
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
 
     p = inpt[0]
     x = init_tuple["int"][0]
@@ -834,7 +834,7 @@ def ex5y(progname, inpt, hists,  init_tuple):
         }
 
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
 
     p = 0.25
 
@@ -877,7 +877,7 @@ def ex5(progname, inpt, hists,  init_tuple):
         }
 
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
 
     p = 0.25
     x = init_tuple["int"][0]
@@ -908,7 +908,7 @@ def ex5barebone(progname, inpt, hists,  init_tuple):
         }
 
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
 
     p = 0.25
     x = 0
@@ -954,7 +954,7 @@ def ex7(progname, inpt, hists,  init_tuple):
             "easy_side": "<="
         }
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     p = inpt[0]
 
     x = init_tuple["int"][0]
@@ -996,7 +996,7 @@ def ex8(progname, inpt, hists,  init_tuple):
         }
 
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     p = 0.25
     x = init_tuple["int"][0]
     y = init_tuple["int"][1]
@@ -1031,7 +1031,7 @@ def ex8p(progname, inpt, hists,  init_tuple):
         }
 
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     p = inpt[0]
     x = init_tuple["int"][0]
     y = init_tuple["int"][1]
@@ -1082,7 +1082,7 @@ def ex18(progname, inpt, hists,  init_tuple):
                            }
         known_inv = "[n − M < 0] * (x - prob*n + prob*M) + [n − M >= 0] * x"
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
 
     prob = inpt[0]
     n = init_tuple["int"][0]
@@ -1116,7 +1116,7 @@ def ex20(progname, inpt, hists,  init_tuple):
         }
         known_inv = "[n<=0] * count + [n>0] * (count + n*(7*3/8))"
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
 
     n = init_tuple["int"][0]
     count = init_tuple["int"][1]
@@ -1157,7 +1157,7 @@ def ex3(progname, inpt, hists,  init_tuple):
         }
 
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     prob1 = inpt[0]
     prob2 = inpt[1]
 
@@ -1203,7 +1203,7 @@ def ex3hard(progname, inpt, hists,  init_tuple):
         }
 
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     prob1 = inpt[0]
     prob2 = inpt[1]
 
@@ -1247,7 +1247,7 @@ def ex3nest(progname, inpt, hists,  init_tuple):
         }
 
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     prob1 = inpt[0]
     prob2 = inpt[1]
 
@@ -1308,7 +1308,7 @@ def ex9(progname, inpt, hists,  init_tuple):
         }
 
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     p = 0.5
 
     x = init_tuple["int"][0]
@@ -1334,7 +1334,7 @@ def ex9p(progname, inpt, hists,  init_tuple):
             "easy_side": "<="
         }
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     p = inpt[0]
     x = init_tuple["int"][0]
     n = init_tuple["int"][1]
@@ -1374,7 +1374,7 @@ def ex10(progname, inpt, hists,  init_tuple):
         }
 
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     p = 0.5
     x = init_tuple["int"][0]
     n = init_tuple["int"][1]
@@ -1432,7 +1432,7 @@ def ex11(progname, inpt, hists,  init_tuple):
                            "easy_side": ">"
                            }
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     prob1 = inpt[0]
 
     x = init_tuple["bool"][0]
@@ -1498,7 +1498,7 @@ def ex11a(progname, inpt, hists,  init_tuple):
                            }
 
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     prob1 = inpt[0]
 
     x = init_tuple["bool"][0]
@@ -1540,7 +1540,7 @@ def exp11a(progname, inpt, hists,  init_tuple):
                            }
 
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     prob1 = inpt[0]
 
     x = init_tuple["bool"][0]
@@ -1593,7 +1593,7 @@ def ex12(progname, inpt, hists,  init_tuple):
                            "easy_side": ">"
                            }
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     prob1, prob2 = inpt[0], inpt[1]
 
     x = init_tuple["int"][0]
@@ -1644,7 +1644,7 @@ def exp12(progname, inpt, hists,  init_tuple):
                            "easy_side": ">"
                            }
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     prob1, prob2 = inpt[0], inpt[1]
     x = init_tuple["int"][0] % 3 - 1  # -1, 0, 1 are all possible
     assert (x == -1) or (x == 0) or (x == 1)
@@ -1698,7 +1698,7 @@ def ex17(progname, inpt, hists,  init_tuple):
         }
         known_inv = "[p >= 0 and p − 1 <= 0] * (p)"
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
 
     p = init_tuple["float"][0]
     b = init_tuple["bool"][0]
@@ -1771,7 +1771,7 @@ def ex19(progname, inpt, hists,  init_tuple):
         known_inv = "[t = A and c = 0]+ [t = A and c = 1] * (p1/(p1 + p2 - p1 * p2))+ \
  [t = B and c = 1] * ((1 - p2)p1/(p1 + p2 - p1 * p2))"
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
 
     # the instrumented program
     p1, p2 = inpt[0], inpt[1]
@@ -1821,7 +1821,7 @@ def exp19a(progname, inpt, hists,  init_tuple):
         known_inv = "[t = A and c = 0]+ [t = A and c = 1] * (p1/(p1 + p2 - p1 * p2))+ \
  [t = B and c = 1] * ((1 - p2)p1/(p1 + p2 - p1 * p2))"
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
 
     # the instrumented program
     p1, p2 = inpt[0], inpt[1]
@@ -1858,7 +1858,7 @@ def exp19b(progname, inpt, hists,  init_tuple):
         known_inv = "[t = A and c = 0]+ [t = A and c = 1] * (p1/(p1 + p2 - p1 * p2))+ \
  [t = B and  = 1] * ((1 - p2)p1/(p1 + p2 - p1 * p2))"
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
 
     # the instrumented program
     p1, p2 = inpt[0], inpt[1]
@@ -1898,7 +1898,7 @@ def ex15(progname, inpt, hists,  init_tuple):
         }
         known_inv = "count + [x <= 10]*(10-x+1)"
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     prob = inpt[0]
 
     x = init_tuple["int"][0]
@@ -1926,7 +1926,7 @@ def ex15a(progname, inpt, hists,  init_tuple):
         }
         known_inv = "count + [x <= 10]*(10-x+1)"
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     prob = inpt[0]
 
     x = init_tuple["int"][0]
@@ -2005,7 +2005,7 @@ def ex22(progname, inpt, hists,  init_tuple):
                            }
         known_inv = "[x >= 1] * (z + x*(1/prob)) + [x <= 0](z)"
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     prob = inpt[0]
 
     x = init_tuple["int"][0]
@@ -2053,7 +2053,7 @@ def ex21(progname, inpt, hists,  init_tuple):
                            }
         known_inv = "[x > 1] * (z + x/(2-prob)) + [x <= 0](z) + [x == 1](z + 1)"
         hists = RecordStat(preds_str, wp, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     prob = inpt[0]
 
     x = init_tuple["int"][0]
@@ -2091,7 +2091,7 @@ def exp21(progname, inpt, hists,  init_tuple):
                            }
         known_inv = "[x >= 1] * (z + x/(2-prob)) + [x <= 0](z) "
         hists = RecordStat(preds_str, wp, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     prob = inpt[0]
     x = init_tuple["int"][0]
     z = init_tuple["int"][1]
@@ -2129,7 +2129,7 @@ def geo_0c(progname, inpt, hists,  init_tuple):
                            "easy_side": ">"
                            }
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     prob = inpt[0]
 
     z = init_tuple["int"][0]
@@ -2186,7 +2186,7 @@ def ex13(progname, inpt, hists,  init_tuple, constraint):
                            "easy_side": ">"
                            }
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
 
     prob = inpt[0]
     if prob < 0.3:
@@ -2268,7 +2268,7 @@ def ex17b(progname, inpt, hists,  init_tuple, constraint):
                            }
         known_inv = "(b − 1 == 0 or x == 0 or x − 1 == 0)] * (x)"
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     p = init_tuple["prob"][0]
     prob = inpt[1]
     b = init_tuple["bool"][0]
@@ -2351,7 +2351,7 @@ def ex3a(progname, inpt, hists,  init_tuple, constraint):
                            "easy_side": ">"
                            }
         hists = RecordStat(preds_str, wp, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     prob1 = inpt[0]
     prob2 = inpt[1]
     if constraint:  # generate hard constraints
@@ -2408,7 +2408,7 @@ def exp3a(progname, inpt, hists,  init_tuple, constraint):
                            "easy_side": ">"
                            }
         hists = RecordStat(preds_str, wp, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     prob1 = inpt[0]
     prob2 = inpt[1]
     if constraint:  # generate hard constraints
@@ -2471,7 +2471,7 @@ def ex3b(progname, inpt, hists,  init_tuple, constraint):
                            }
 
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     prob1 = inpt[0]
     prob2 = inpt[1]
     if constraint:  # generate hard constraints
@@ -2523,7 +2523,7 @@ def exp3b(progname, inpt, hists,  init_tuple, constraint):
                            }
 
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           qual_feature_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices)
     prob1 = inpt[0]
     prob2 = inpt[1]
     if constraint:  # generate hard constraints

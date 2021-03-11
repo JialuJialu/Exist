@@ -1,7 +1,6 @@
 from copy import deepcopy
 from model_tree.run_model_tree import runModelTree
 from model_tree.models.linear_regr_pnorm import linear_regr_2norm
-from src.data_utils import AggregateData
 from src.ex_prog import geo_0, geo_0a, geo_0b,  geo_0c, ex1, ex2, ex3a, ex3b, ex3, ex3nest, ex3hard
 from src.ex_prog import ex4, ex4a, ex5, ex5y, ex5yp, ex5p, ex7, ex8, ex8p, ex9, ex9p, ex10,  ex11, ex11a
 from src.ex_prog import ex12, ex13, ex15, ex15a, ex17, ex18, ex19
@@ -36,10 +35,11 @@ Bootstrapping = False
 Bootstrapping_ratio = 1
 PURE_linear = False
 FIT_intercept = True
+Regressors = [(linear_regr_2norm, "2norm")]
 '''
 # whether to collect the data again and update CSV or retriving data from
 # existing CSV and learn the model. CSV files are under directory `csv`.
-UPDATE_CSV = False
+UPDATE_CSV = True
 # whether to test how a known model fits data, v.s. learn a model from data without prior knowledge
 TESTING_KNOWN_MODEL = False
 # whether to plot how the model fits data. Plotting gives us insights into how the
@@ -48,7 +48,7 @@ PLOT_fitting = True
 # PLOT_only only makes sense when PLOT_fitting is True. It specifies whether to
 # only plot with the historical data and model, or learn a model again before plotting.
 # If PLOT_only is True, there must be existing data in the `output` directory in the format of `.npy`.
-PLOT_only = True
+PLOT_only = False
 # whether get multiple samples of data by bootstrapping, instead of by rerunning the program
 Bootstrapping = False
 # Bootstrapping_ratio is only meaningful when Bootstrapping is True.
@@ -57,10 +57,12 @@ Bootstrapping_ratio = 1
 # Given that we fit data with model trees that having linear models on leaves:
 # PURE_linear specifies whether to make the restriction that the whole model tree (as a whole)
 # should be a linear model;
-PURE_linear = True
+PURE_linear = False
 # Fit_intercept specifies whether we let the leave model,
 # which is the linear function to fit with intercept.
 FIT_intercept = True
+# A list of choices for leaf models
+Regressors = [(linear_regr_2norm, "2norm")]
 
 '''
 A set of parameters to determine how much data to collect for the tool. 
@@ -72,9 +74,9 @@ NUM_RUNS = int(sys.argv[1])
 # When Bootstrapping is False, we recollect the data multiple times to train multiple models;
 # When Bootstrapping is True, we only collect the data once,
 # and subsample to get `bags` and learn multiple models.
-numBAG = [3]
+numBAG = [3, 5, 10, 15]
 # Max depth of the model tree
-MAX_DEPTH = 2
+MAX_DEPTH = 3
 # Minimum number of samples
 MIN_SAMPLE_LEAF = 5
 # The space for boolean on which we perform grid search
@@ -166,8 +168,8 @@ Thus, we can just input "<=" by default unless we want to try "==".
 '''
 progs = {
     # 100 * 2 * 5 * 20 * 2
-    # "geo_0": (geo_0, probinpts1, INIT_GRID1bool1int, "<="),
-    "geo_0a": (geo_0a, probinpts1, INIT_GRID1bool2int, "<="),
+    "geo_0": (geo_0, probinpts1, INIT_GRID1bool1int, "<="),
+    # "geo_0a": (geo_0a, probinpts1, INIT_GRID1bool2int, "<="),
     # "geo_0b": (geo_0b, probinpts1, INIT_GRID1bool2int), #TODO
     # "geo_0c": (geo_0c, probinpts1, INIT_GRID1bool2int), #TODO
     # "ex2": (ex2, probinpts2, INIT_GRID0bool3int,"<="),
@@ -206,240 +208,51 @@ progs = {
     # "ex3b": (exp3b, probinpts2, INIT_GRID1bool1int),
 }  # programs to run
 
+'''
+Run example programs in ex_prog.py to collect data
+'''
+
 
 def get_stats(progname, proginfo, filename):
     prog, inpts, initgrid, _ = proginfo
-    aggre_data = AggregateData()
+    hists = None  #
     if UPDATE_CSV:
         for inpt in inpts:
             print(inpt)
             for init_states in initgrid:
-                hists = None  # One hists for one set of input
                 for _ in range(NUM_RUNS):  # repeatedly run
                     hists = prog(progname, inpt, hists, init_states)
                 try:
-                    aggre_data.end_sampling_runs(hists, inpt)
+                    hists.end_sampling_runs(inpt)
                 except AttributeError:
                     pdb.set_trace()
-        df = aggre_data.to_df()
+        df = hists.to_df()
         filename_csv = os.path.join("csv", "{}.csv".format(filename))
         df.to_csv(filename_csv, index=False)
     else:
-        hists = None
         hists = prog(progname, inpts[0], hists, initgrid[0])
-        aggre_data.end_sampling_runs(hists, inpts[0])
-    return aggre_data.qual_feature_indices, aggre_data.known_inv, aggre_data.known_model
+    return hists.variable_indices, hists.known_inv, hists.known_model
 
 
 '''
-Recall that node has the following structure
-            node = {"name": node_name,
-                    "parent_name": parent,
-                    "index": container["index_node_global"],
-                    "loss": loss_node,
-                    "model": model_node,
-                    "data": (X_cur, X_next, X_init, y_post),
-                    "constraint": (X_cons, y_cons),
-                    "n_samples": len(X_inv) + len(X_init),
-                    "not_to_fit": not_to_fit[:],
-                    "j_feature": None,
-                    "threshold": None,
-                    "children": {"left": None, "right": None},
-                    "direction": direction,
-                    "parent_j_feature": parent_j_feature,
-                    "parent_threshold": parent_threshold,
-                    "root": root,
-                    "depth": depth}
+The main routine of the tool
 '''
-
-'''
-Return true if tree2 has the same structure as tree 1
-'''
-
-
-def check_same_structure(tree1, tree2):
-    if tree1["name"] != tree2["name"]:
-        return False
-    else:
-        if tree1["j_feature"] != tree2["j_feature"] or tree1["threshold"] != tree2["threshold"]:
-            return False
-        else:
-            check_left = (tree1["children"]["left"]
-                          is None and tree1["children"]["left"] is None) or (check_same_structure(
-                              tree1["children"]["left"], tree2["children"]["left"]))
-            check_right = (tree1["children"]["right"]
-                           is None and tree1["children"]["right"] is None) or (check_same_structure(
-                               tree1["children"]["right"], tree2["children"]["right"]))
-            return check_left and check_right
-
-# '''
-# Return true if tree2 has the same structure as tree 1 except tree 2 making more splits
-# '''
-
-
-def check_tree_subtype(tree1, tree2):
-    if tree1["name"] != tree2["name"] or tree1["parent_name"] != tree2["parent_name"]:
-        return False
-    else:
-        if tree1["j_feature"] != tree2["j_feature"] or tree1["threshold"] != tree2["threshold"]:
-            return False
-        else:
-            check_left = (tree1["children"]["left"] is None) or (check_same_structure(
-                tree1["children"]["left"], tree2["children"]["left"]))
-            check_right = (tree1["children"]["right"] is None) or (check_same_structure(
-                tree1["children"]["right"], tree2["children"]["right"]))
-            return check_left and check_right
-
-
-def find_common_structure(treelist):
-    treelist_ = np.array([deepcopy(tree) for tree in treelist])
-    n = len(treelist_)
-    if np.any([tree is None for tree in treelist]):
-        return [None for _ in range(n)]
-    namelist = [tree["name"] for tree in treelist_]
-    same_name = np.all([namelist[i] == namelist[0] for i in range(n)])
-    thresholdlist = [tree["threshold"] for tree in treelist_]
-    same_threshold = np.all(
-        [thresholdlist[i] == thresholdlist[0] for i in range(n)])
-    j_featurelist = [tree["j_feature"] for tree in treelist_]
-    same_j_feature = np.all(
-        [j_featurelist[i] == j_featurelist[0] for i in range(n)])
-
-    if not same_name:
-        return [None for _ in range(n)]
-    else:
-        if not (same_j_feature and same_threshold):
-            for tree in treelist_:
-                tree["children"]["right"], tree["children"]["left"] = None, None
-                tree["j_feature"], tree["threshold"] = None, None
-            return treelist_
-        else:
-            leftlist = find_common_structure(
-                [tree["children"]["left"] for tree in treelist_])
-            rightlist = find_common_structure(
-                [tree["children"]["right"] for tree in treelist_])
-            for treeidx in range(n):
-                treelist_[treeidx]["children"]["right"] = rightlist[treeidx]
-                treelist_[treeidx]["children"]["left"] = leftlist[treeidx]
-            return treelist_
-
-
-def avg_models(models):
-    modelmodel = np.mean(np.array([model.model for model in models]), axis=0)
-    return linear_regr_2norm(fit_intercept=FIT_intercept, model=modelmodel)
-
-
-def median_models(models):
-    modelmodel = np.median(np.array([model.model for model in models]), axis=0)
-    return linear_regr_2norm(fit_intercept=FIT_intercept, model=modelmodel)
-
-
-def aggregate_trees(treelist, aggre_method):
-    if np.all(treelist == None):
-        return None
-    assert not np.any(treelist == None)
-    avg_tree = treelist[0]
-    try:
-        avg_tree["loss"] = np.mean([tree["loss"] for tree in treelist])
-    except TypeError:
-        pdb.set_trace()
-    avg_tree["model"] = aggre_method([tree["model"] for tree in treelist])
-    avg_tree["data"] = ()
-    avg_tree["constraint"] = ()
-    avg_tree["n_samples"] = np.mean([tree["n_samples"] for tree in treelist])
-    avg_tree["children"]["left"] = aggregate_trees(
-        np.array([tree["children"]["left"] for tree in treelist]), aggre_method)
-    avg_tree["children"]["right"] = aggregate_trees(
-        np.array([tree["children"]["right"] for tree in treelist]), aggre_method)
-    return avg_tree
-
-
-def classify_tree_list(treelist):
-    classified_tree_list = defaultdict(list)
-    names_classified_tree_list = defaultdict(list)
-    counter = 0
-    for treeidx in range(len(treelist)):
-        tree = treelist[treeidx]
-        tree_added = False
-        for i in classified_tree_list.keys():
-            if check_same_structure(classified_tree_list[i][0], tree):
-                classified_tree_list[i].append(tree)
-                names_classified_tree_list[i].append(treeidx)
-                tree_added = True
-        if not tree_added:
-            classified_tree_list[counter] = [tree]
-            names_classified_tree_list[counter] = [treeidx]
-            counter += 1
-    return classified_tree_list, names_classified_tree_list
-
-
-def find_most_common_structure(classified_tree_list):
-    most_common_structure_treeclass = None
-    maxlen = 0
-    for _, treeclass in classified_tree_list.items():
-        if len(treeclass) <= maxlen:
-            maxlen = len(treeclass)
-            most_common_structure_treeclass = treeclass
-    return most_common_structure_treeclass
-
-
-def write_to_csv(learned_inv):
-    learned_inv_dict = {}
-    learnd_inv_array = np.array(learned_inv)
-    learned_inv_dict["method"] = learnd_inv_array[:, 0]
-    learned_inv_dict["prog_name"] = learnd_inv_array[:, 1]
-    learned_inv_dict["known_inv"] = learnd_inv_array[:, 2]
-    learned_inv_dict["invariant"] = learnd_inv_array[:, 3]
-    learned_inv_dict["prob_grid_size"] = learnd_inv_array[:, 4]
-    learned_inv_dict["Bootstrapping_subsampling"] = str(Bootstrapping)
-    learned_inv_dict["Aggregate_size"] = learnd_inv_array[:, 5]
-    learned_inv_dict["purely linear"] = str(PURE_linear)
-    learned_inv_dict["NUM_RUNS"] = str(NUM_RUNS)
-    learned_inv_dict["Bootstrapping_ratio"] = str(Bootstrapping_ratio)
-    df = pd.DataFrame.from_dict(learned_inv_dict)
-
-    saving_filename = os.path.join(
-        "invariants", "learned_invariants_{}.csv".format(dt_string))
-    df.to_csv(saving_filename, index=False)
-
-
-def save_to_text(norm, name, known_inv, invariant, probinputs, text, nBAG):
-    filename = os.path.join(
-        "txt", "{}_{}.txt".format(name, dt_string))
-    with open(filename, "w") as f:
-        f.write("benchmark: {}\n".format(name))
-        f.write("\n")
-        f.write("invariant: {}\n".format(invariant))
-        f.write("\n")
-        parameters = "method={}, prob_grid_size={}, Aggregate_size={}, Num_runs={}, Max_depth={}, Min_samples_leaf={}".format(
-            norm, len(probinputs), nBAG, NUM_RUNS, MAX_DEPTH, MIN_SAMPLE_LEAF)
-        f.write("paramenters: {}\n".format(parameters))
-        f.write("\n")
-        f.write("model_tree_begin\n")
-        f.write("\n")
-        f.write(text)
-        f.write("\n")
-        f.write("model_tree_end\n")
-        f.write("\n")
-    f.close()
 
 
 def main():
     learned_inv = []
     for name, proginfo in progs.items():
         nBAG = max(numBAG)
+        # for timing
         tot_time = timeit.default_timer()
         samp_time = 0
         tree_time = 0
-        regressors = [
-            (linear_regr_2norm, "2norm"),
-        ]
-        for regresser, norm in regressors:
-            plot_fitting = PLOT_fitting
+        # iterating through choices of leaf models
+        for regresser, leafmodelname in Regressors:
             filename = name
             if Bootstrapping:
                 time = timeit.default_timer()
-                qual_features_indices, known_inv, known_model = get_stats(
+                variable_indices, known_inv, known_model = get_stats(
                     name, proginfo, filename)
                 samp_time = samp_time + timeit.default_timer() - time
             treelist = []
@@ -447,14 +260,14 @@ def main():
                 if not Bootstrapping:
                     filename = "{}_{}".format(name, T)
                     time = timeit.default_timer()
-                    qual_features_indices, known_inv, known_model = get_stats(
+                    variable_indices, known_inv, known_model = get_stats(
                         name, proginfo, filename)
                     samp_time = samp_time + timeit.default_timer()-time
                 time = timeit.default_timer()
                 model = regresser(fit_intercept=FIT_intercept)
-                m = runModelTree(model, filename, norm, qual_features_indices,
+                m = runModelTree(model, filename, leafmodelname, variable_indices,
                                  known_inv, known_model, TESTING_KNOWN_MODEL,
-                                 PLOT_only, plot_fitting,
+                                 PLOT_only, PLOT_fitting,
                                  Bootstrapping, Bootstrapping_ratio,
                                  sign=list(proginfo)[-1],
                                  pure_linear=PURE_linear, max_depth=MAX_DEPTH,
@@ -469,7 +282,7 @@ def main():
                 tree_time = timeit.default_timer() + tree_time - time
                 treelist.append(learned_tree)
                 learned_inv.append(
-                    [norm, name, known_inv, invariant, len(proginfo[1]), nBAG])
+                    [leafmodelname, name, known_inv, invariant, len(proginfo[1]), nBAG])
                 # eagerly write to the file so the previous data won't be lost when we stuck in some examples
                 write_to_csv(learned_inv)
 
@@ -492,15 +305,15 @@ def main():
                         invariant_string2 = inv_func_recurse(average_tree2)
 
                         learned_inv.append(
-                            [norm, "{}_{}".format(name, method), known_inv, invariant_string, len(proginfo[1]), T+1])
+                            [leafmodelname, "{}_{}".format(name, method), known_inv, invariant_string, len(proginfo[1]), T+1])
                         learned_inv.append(
-                            [norm, "{}_supertree_{}".format(name, method), known_inv, invariant_string2, len(proginfo[1]), T+1])
+                            [leafmodelname, "{}_supertree_{}".format(name, method), known_inv, invariant_string2, len(proginfo[1]), T+1])
 
                         write_to_csv(learned_inv)
-                        save_to_text(norm, "{}_{}".format(name, method), known_inv,
-                                     invariant_string, proginfo[1], generate_txt(average_tree, []), nBAG)
-                        save_to_text(norm, "{}_supertree_{}".format(
-                            name, method), known_inv, invariant_string2, proginfo[1], generate_txt(average_tree2, []), nBAG)
+                        save_to_text(leafmodelname, "{}_{}".format(name, method), known_inv,
+                                     invariant_string, proginfo[1], generate_txt(average_tree, []), T+1)
+                        save_to_text(leafmodelname, "{}_supertree_{}".format(
+                            name, method), known_inv, invariant_string2, proginfo[1], generate_txt(average_tree2, []), T+1)
 
         tot_time = timeit.default_timer()-tot_time
         row = [name, tot_time, samp_time, tree_time, samp_time/nBAG, tree_time/nBAG, nBAG,
@@ -508,6 +321,242 @@ def main():
         with open('invariants/used_time', 'a') as fd:
             writer = csv.writer(fd)
             writer.writerow(row)
+
+
+'''
+Return true if tree2 has the same structure as tree 1
+'''
+
+
+def check_same_structure(tree1, tree2):
+    if tree1["name"] != tree2["name"]:
+        return False
+    else:
+        if tree1["j_feature"] != tree2["j_feature"] or tree1["threshold"] != tree2["threshold"]:
+            return False
+        else:
+            check_left = (tree1["children"]["left"]
+                          is None and tree1["children"]["left"] is None) or (check_same_structure(
+                              tree1["children"]["left"], tree2["children"]["left"]))
+            check_right = (tree1["children"]["right"]
+                           is None and tree1["children"]["right"] is None) or (check_same_structure(
+                               tree1["children"]["right"], tree2["children"]["right"]))
+            return check_left and check_right
+
+
+'''
+Define two trees to have the same structures if they are the same except having 
+different leaf models. 
+'''
+'''
+ Return: true if tree2 can be pruned into a tree that has the same structure as tree1, 
+ return false otherwise
+'''
+
+
+def check_tree_subtype(tree1, tree2):
+    if tree1["name"] != tree2["name"] or tree1["parent_name"] != tree2["parent_name"]:
+        return False
+    else:
+        if tree1["j_feature"] != tree2["j_feature"] or tree1["threshold"] != tree2["threshold"]:
+            return False
+        else:
+            check_left = (tree1["children"]["left"] is None) or (check_same_structure(
+                tree1["children"]["left"], tree2["children"]["left"]))
+            check_right = (tree1["children"]["right"] is None) or (check_same_structure(
+                tree1["children"]["right"], tree2["children"]["right"]))
+            return check_left and check_right
+
+
+'''
+ Return: the deepest tree T such that each T' in treelist can be pruned into 
+ a tree that has the same structure as T. 
+'''
+
+
+def find_common_structure(treelist):
+    treelist_ = np.array([deepcopy(tree) for tree in treelist])
+    n = len(treelist_)
+    if np.any([tree is None for tree in treelist]):
+        return [None for _ in range(n)]
+    namelist = [tree["name"] for tree in treelist_]
+    same_name = np.all([namelist[i] == namelist[0] for i in range(n)])
+    thresholdlist = [tree["threshold"] for tree in treelist_]
+    same_threshold = np.all(
+        [thresholdlist[i] == thresholdlist[0] for i in range(n)])
+    j_featurelist = [tree["j_feature"] for tree in treelist_]
+    same_j_feature = np.all(
+        [j_featurelist[i] == j_featurelist[0] for i in range(n)])
+    if not same_name:
+        return [None for _ in range(n)]
+    else:
+        if not (same_j_feature and same_threshold):
+            for tree in treelist_:
+                tree["children"]["right"], tree["children"]["left"] = None, None
+                tree["j_feature"], tree["threshold"] = None, None
+            return treelist_
+        else:
+            leftlist = find_common_structure(
+                [tree["children"]["left"] for tree in treelist_])
+            rightlist = find_common_structure(
+                [tree["children"]["right"] for tree in treelist_])
+            for treeidx in range(n):
+                treelist_[treeidx]["children"]["right"] = rightlist[treeidx]
+                treelist_[treeidx]["children"]["left"] = leftlist[treeidx]
+            return treelist_
+
+
+'''
+ Average a list of linear functions by taking the mean of each coeefficients
+'''
+
+
+def avg_models(models):
+    modelmodel = np.mean(np.array([model.model for model in models]), axis=0)
+    return linear_regr_2norm(fit_intercept=FIT_intercept, model=modelmodel)
+
+
+'''
+ Average a list of linear functions by taking the median of each coeefficient
+'''
+
+
+def median_models(models):
+    modelmodel = np.median(np.array([model.model for model in models]), axis=0)
+    return linear_regr_2norm(fit_intercept=FIT_intercept, model=modelmodel)
+
+
+'''
+ Assume: all trees in treelist has the same structure 
+ Return: a tree whose structure is the same as any tree in treelist, 
+ and every leaf model of which is the average of leaf models of trees in treelist 
+ at the same position. 
+'''
+
+
+def aggregate_trees(treelist, aggre_method):
+    if np.all(treelist == None):
+        return None
+    assert not np.any(treelist == None)
+    avg_tree = treelist[0]
+    try:
+        avg_tree["loss"] = np.mean([tree["loss"] for tree in treelist])
+    except TypeError:
+        pdb.set_trace()
+    avg_tree["model"] = aggre_method([tree["model"] for tree in treelist])
+    avg_tree["data"] = ()
+    avg_tree["constraint"] = ()
+    avg_tree["n_samples"] = np.mean([tree["n_samples"] for tree in treelist])
+    avg_tree["children"]["left"] = aggregate_trees(
+        np.array([tree["children"]["left"] for tree in treelist]), aggre_method)
+    avg_tree["children"]["right"] = aggregate_trees(
+        np.array([tree["children"]["right"] for tree in treelist]), aggre_method)
+    return avg_tree
+
+
+'''
+ Return: 
+ classified_tree_list: a dictionary with keys to be some number indexing 
+ different structures, and values to be lists of trees -- trees are in the same 
+ list iff they have the same structure. 
+ names_classified_tree_list: similar to classified_tree_list, except its values, 
+ it contains the trees' indices in the input treelist, instead of the trees themselves. 
+'''
+
+
+def classify_tree_list(treelist):
+    classified_tree_list = defaultdict(list)
+    names_classified_tree_list = defaultdict(list)
+    counter = 0
+    for treeidx in range(len(treelist)):
+        tree = treelist[treeidx]
+        tree_added = False
+        for i in classified_tree_list.keys():
+            if check_same_structure(classified_tree_list[i][0], tree):
+                classified_tree_list[i].append(tree)
+                names_classified_tree_list[i].append(treeidx)
+                tree_added = True
+        if not tree_added:
+            classified_tree_list[counter] = [tree]
+            names_classified_tree_list[counter] = [treeidx]
+            counter += 1
+    return classified_tree_list, names_classified_tree_list
+
+
+'''
+ Assume:  classified_tree_list is a dictionary with keys to be some number indexing 
+ different structures, and values to be lists of trees -- trees are in the same 
+ list iff they have the same structure. 
+ Return: the list of same structure trees in classified_tree_list.values() 
+ that has the most members. We just pick the one last seen when there is a tie. 
+'''
+
+
+def find_most_common_structure(classified_tree_list):
+    most_common_structure_treeclass = None
+    maxlen = 0
+    for _, treeclass in classified_tree_list.items():
+        if len(treeclass) >= maxlen:
+            maxlen = len(treeclass)
+            most_common_structure_treeclass = treeclass
+    return most_common_structure_treeclass
+
+
+'''
+ Assume: learned_inv is a list of list. 
+ Each entry of learned_inv is in the form of 
+ [leafmodelname, name, known_inv, learned invariants, len(proginfo[1]), 
+  the number of models it aggregates]
+  
+ The function writes info in learned_inv and other global parameters into a csv. 
+'''
+
+
+def write_to_csv(learned_inv):
+    learned_inv_dict = {}
+    learnd_inv_array = np.array(learned_inv)
+    learned_inv_dict["method"] = learnd_inv_array[:, 0]
+    learned_inv_dict["prog_name"] = learnd_inv_array[:, 1]
+    learned_inv_dict["known_inv"] = learnd_inv_array[:, 2]
+    learned_inv_dict["invariant"] = learnd_inv_array[:, 3]
+    learned_inv_dict["prob_grid_size"] = learnd_inv_array[:, 4]
+    learned_inv_dict["Bootstrapping_subsampling"] = str(Bootstrapping)
+    learned_inv_dict["Aggregate_size"] = learnd_inv_array[:, 5]
+    learned_inv_dict["purely linear"] = str(PURE_linear)
+    learned_inv_dict["NUM_RUNS"] = str(NUM_RUNS)
+    learned_inv_dict["Bootstrapping_ratio"] = str(Bootstrapping_ratio)
+    df = pd.DataFrame.from_dict(learned_inv_dict)
+
+    saving_filename = os.path.join(
+        "invariants", "learned_invariants_{}.csv".format(dt_string))
+    df.to_csv(saving_filename, index=False)
+
+
+'''
+ Save the parameters and a text representation of the learned model tree that 
+ can be passed to perform different rounding schemes under the directory `txt`
+'''
+
+
+def save_to_text(leafmodelname, name, known_inv, invariant, probinputs, text, nBAG):
+    filename = os.path.join(
+        "txt", "{}_{}.txt".format(name, dt_string))
+    with open(filename, "w") as f:
+        f.write("benchmark: {}\n".format(name))
+        f.write("\n")
+        f.write("invariant: {}\n".format(invariant))
+        f.write("\n")
+        parameters = "leaf model={}, prob_grid_size={}, Aggregate_size={}, Num_runs={}, Max_depth={}, Min_samples_leaf={}".format(
+            leafmodelname, len(probinputs), nBAG, NUM_RUNS, MAX_DEPTH, MIN_SAMPLE_LEAF)
+        f.write("paramenters: {}\n".format(parameters))
+        f.write("\n")
+        f.write("model_tree_begin\n")
+        f.write("\n")
+        f.write(text)
+        f.write("\n")
+        f.write("model_tree_end\n")
+        f.write("\n")
+    f.close()
 
 
 main()

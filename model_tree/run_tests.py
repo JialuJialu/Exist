@@ -1,6 +1,5 @@
 """
 
- run_tests.py  (author: Anson Wong / git: ankonzoid)
 
  Runs 3 tests to make sure our model tree works as expected.
 

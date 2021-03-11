@@ -1,5 +1,16 @@
 """
- ModelTree.py  (author: Anson Wong / git: ankonzoid)
+ Adapted from model_tree.py by Anson Wong (git: ankonzoid)
+
+  With hyperparameters specified during initialization, 
+ [runModelTree] fits a model tree to the data in the given input file. 
+ 
+ While keeping the main functionalities of Anson's code, we make adjustment to 
+ faciliate performing the experiments that we were interested in. 
+ 
+ Updates highlights:
+ - Get rid of original text outputs that try to express the quality of model 
+ on each data point, and enable plotting how model fits the data in a scatterplot. 
+ - Support subsampling when doing Bootstrapping
 """
 import numpy as np
 import pandas as pd
@@ -15,31 +26,28 @@ import matplotlib.pyplot as plt
 THRESHOLD = 1e-4
 
 
-class ModelTreeInv(object):
+class ModelTree(object):
 
-    def __init__(self, model, header, fit_used,
+    def __init__(self, model, header, pure_linear,
                  testing_known_model, known_model, max_depth, min_samples_leaf,
-                 search_type, n_search_grid, j_feature_range, sign, loss_func):
+                 search_type, n_search_grid, variable_indices, sign, leafmodelname):
 
         self.model = model
-        self.header_init = header
+        self.header = header
         self.max_depth = max_depth
         self.min_samples_leaf = min_samples_leaf
         self.search_type = search_type
         self.n_search_grid = n_search_grid
-        self.j_feature_range = j_feature_range
-        self.tree = None
-        # not use a feature to fit if have already using it for splitting
-        self.no_repeat = not(fit_used)
-        self.bfs = False
+        self.variable_indices = variable_indices
+        self.pure_linear = pure_linear
         self.sign = sign
         assert self.sign == ">" or self.sign == "<=" or self.sign == "=="
-        self.sort_reverse = True
-        self.fitting_history = {}
+        self.sort_reverse = True  # how we sort the initial program states when plotting
         self.testing_known_model = testing_known_model
         self.known_model = known_model
-        self.loss_func = loss_func
-        self.norm_p = 2
+        self.leafmodelname = leafmodelname
+        self.fitting_history = {}
+        self.tree = None
 
     def get_params(self, deep=True):
         return {
@@ -48,7 +56,7 @@ class ModelTreeInv(object):
             "min_samples_leaf": self.min_samples_leaf,
             "search_type": self.search_type,
             "n_search_grid": self.n_search_grid,
-            "j_feature_range": self.j_feature_range,
+            "variable_indices": self.variable_indices,
         }
 
     def set_params(self, **params):
@@ -71,34 +79,31 @@ class ModelTreeInv(object):
         max_depth = self.max_depth
         search_type = self.search_type
         n_search_grid = self.n_search_grid
-        j_feature_range = self.j_feature_range
-        header_init = self.header_init
-        no_repeat = self.no_repeat
+        variable_indices = self.variable_indices
+        header = self.header
+        pure_linear = self.pure_linear
 
         if verbose:
             print(" max_depth={}, min_samples_leaf={}, search_type={}...".format(
                 max_depth, min_samples_leaf, search_type))
 
-        def _build_tree(X_init, y_post, j_feature_range):
+        def _build_tree(X_init, y_post, variable_indices):
 
             global index_node_global
 
             '''
-            splitting [parent] based on its [j_feature] at [threshold] and
-            create the child at [parent]'s [direction]
-            [not_to_fit] tracks all features that ever used for splitting
-            on the path from root to the node to be created
+            Assume: when self.pure_linear is True, [not_to_fit] tracks all 
+            features that ever used for splitting on the path from root to the 
+            node to be created; otherwise, [not_to_fit] is empty. 
+            Returns: child at [parent]'s [direction], splitting based on
+            the parent's [j_feature] at [threshold]. 
             '''
             def _create_node(X_init, y_post, depth, container, parent, direction, not_to_fit, verbose=True):
-                # X_inv, y_inv = getXyfrominv(X_cur, X_next, parent,
-                #                             direction, header_iter, root, parent_j_feature, parent_threshold, self.sign, model_sibling=None, verbose=False)
-                # # we can assume that left has been created
                 node_name = "root" if parent is None else "{}_{}".format(
                     parent, direction)
                 loss_node, model_node = _fit_model(
                     X_init, y_post, model, not_to_fit=not_to_fit, verbose=True, node_name=node_name, fitting_hist=self.fitting_history)
                 node = {"name": node_name,
-                        # "parent_name": parent,
                         "index": container["index_node_global"],
                         "loss": loss_node,
                         "model": model_node,
@@ -109,13 +114,10 @@ class ModelTreeInv(object):
                         "threshold": None,
                         "children": {"left": None, "right": None},
                         "direction": direction,
-                        # "parent_j_feature": parent_j_feature,
-                        # "parent_threshold": parent_threshold,
-                        # "root": root,
                         "depth": depth}
 
                 if verbose:
-                    header = self.header_init
+                    header = self.header
                     variables = [header[i] for i in range(
                         len(header)) if not (i in node["not_to_fit"])]
                     model_print, _ = node["model"].to_string(variables)
@@ -127,9 +129,8 @@ class ModelTreeInv(object):
 
             '''
             Recursively split node + traverse node until a terminal node is reached
-            Currently, we grow the tree in a order that is neither DFS nor BFS.
-            For instance, when the following tree is constructed,
-            nodes are created in the numerical order of indices annotated.
+            Currently, we grow the tree in the following order 
+            (nodes are created in the numerical order of indices annotated), 
                    1
                  /   \
                 2     3
@@ -137,18 +138,18 @@ class ModelTreeInv(object):
               4   5  10 11
              / \ / \
              6 7 8 9
+             TODO: order
             '''
             def _split_traverse_node(node, container):
-                if not no_repeat:
-                    not_to_fit = []
-                else:
-                    not_to_fit = node["not_to_fit"]
                 # Perform split and collect result
-                result = _splitter(node, model, header_init, self.sign,
-                                   no_repeat, not_to_fit=not_to_fit,
-                                   loss_func=self.loss_func,
+                if not pure_linear:
+                    assert len(node["not_to_fit"]) == 0
+                not_to_fit = node["not_to_fit"]
+                result = _splitter(node, model, header, self.sign,
+                                   pure_linear, not_to_fit=not_to_fit,
+                                   leafmodelname=self.leafmodelname,
                                    min_samples_leaf=min_samples_leaf,
-                                   j_feature_range=j_feature_range,
+                                   variable_indices=variable_indices,
                                    max_depth=max_depth,
                                    search_type=search_type,
                                    n_search_grid=n_search_grid)
@@ -177,7 +178,7 @@ class ModelTreeInv(object):
                         depth_spacing_str, node["index"], node["depth"], node["loss"], node["j_feature"], node["threshold"], len(X_left), len(X_right)))
 
                 # Create children nodes
-                if not no_repeat:
+                if not pure_linear:
                     new_not_to_fit = []
                 else:
                     new_not_to_fit = not_to_fit+[result["j_feature"]]
@@ -193,12 +194,14 @@ class ModelTreeInv(object):
                 _split_traverse_node(node["children"]["right"], container)
 
             def _split_known_model(node, container):
+                # Setting
                 known_model = self.known_model
                 sign = self.sign
                 opp_sign = op_sign(sign)
                 name = node["name"]
                 lookup_name = name.replace("_l", "_{}".format(
                     sign)).replace("_r", "_{}".format(opp_sign))
+                # Split on a non-leaf node in a known model
                 if known_model[lookup_name]["split"]:
                     result = known_model[lookup_name]
                     node["j_feature"] = result["j_feature"]
@@ -206,13 +209,14 @@ class ModelTreeInv(object):
                     (X_init, y_post) = node["data"]
                     _, node_model = _fit_model(
                         X_init, y_post, model, verbose=True, node_name=name, fitting_hist=self.fitting_history)
-
+                    # Split
                     (X_init_l, y_post_l), (X_init_r, y_post_r) = _split_data(
                         node["j_feature"], node["threshold"], X_init, y_post, sign)
+                    # Creating children.
+                    # Note that not_to_fit not used because it is the known model
                     node["children"]["left"] = _create_node(
                         X_init_l, y_post_l, node["depth"]+1, container=container,
                         parent=node["name"], direction="l", not_to_fit=[])
-                    # not_to_fit not used because it is the known model
                     node["children"]["right"] = _create_node(
                         X_init_r, y_post_r, node["depth"]+1, container=container,
                         parent=node["name"], direction="r", not_to_fit=[])
@@ -220,15 +224,12 @@ class ModelTreeInv(object):
                     _split_known_model(node["children"]["right"], container)
 
                 else:
-                    # TODO: remove the assumption that depth is more than one?
+                    # Compute how the leaf model fits data
                     node["model"] = known_model[lookup_name]["model"]
                     (X_init, y_post) = node["data"]
-                    parent, direction = node["name"].rsplit('_', 1)
-                    parent_lk = parent.replace("_l", "_{}".format(
-                        sign)).replace("_r", "_{}".format(opp_sign))
-                    y_pred = node["model"].predict(X_init)  # known model
+                    y_pred = node["model"].predict(X_init)
                     node["loss"] = node["model"].loss(
-                        X_init, y_post, y_pred, self.loss_func, self.norm_p)
+                        X_init, y_post, y_pred, self.leafmodelname)
                     self.fitting_history[node["name"]] = _record_fitting(
                         X_init, y_post, y_pred)
 
@@ -244,7 +245,7 @@ class ModelTreeInv(object):
             return root
 
         # Construct tree
-        self.tree = _build_tree(X_init, y_post, j_feature_range)
+        self.tree = _build_tree(X_init, y_post, variable_indices)
         return self.sign, self.sort_reverse
 
     # ======================
@@ -253,6 +254,9 @@ class ModelTreeInv(object):
     def predict(self, X):
         assert self.tree is not None
 
+        '''
+        Use [node] (which represents a tree) to make a prediction on [x]
+        '''
         def _predict(node, x):
             no_children = node["children"]["left"] is None and \
                 node["children"]["right"] is None
@@ -265,49 +269,13 @@ class ModelTreeInv(object):
                     pdb.set_trace()
                 return y_pred_x
             else:
-                if x[node["j_feature"]] <= node["threshold"]:  # x[j] < threshold
+                if x[node["j_feature"]] <= node["threshold"]:
                     return _predict(node["children"]["left"], x)
-                else:  # x[j] > threshold
+                else:
                     return _predict(node["children"]["right"], x)
         root = self.tree
         y_pred = np.array([_predict(self.tree, x) for x in X])
         return y_pred
-
-    # ======================
-    # Explain
-    # ======================
-    def explain(self, X, header_init):
-        assert self.tree is not None
-        header = [w.replace("init_", "") for w in header_init]
-
-        def _explain(node, x, explanation):
-            no_children = node["children"]["left"] is None and \
-                node["children"]["right"] is None
-            if no_children:
-                variables = [header[i] for i in range(
-                    len(header)) if not (i in node["not_to_fit"])]
-                explanation.append(node["model"].to_string(variables)[0])
-                return explanation
-            else:
-                if x[node["j_feature"]] <= node["threshold"]:  # x[j] < threshold
-                    explanation.append("{} = {:.3f} <= {:.3f}".format(
-                        header[node["j_feature"]], x[node["j_feature"]], node["threshold"]))
-                    return _explain(node["children"]["left"], x, explanation)
-                else:  # x[j] > threshold
-                    explanation.append("{} = {:.3f} > {:.3f}".format(
-                        header[node["j_feature"]], x[node["j_feature"]], node["threshold"]))
-                    return _explain(node["children"]["right"], x, explanation)
-
-        explanations = [_explain(self.tree, x, []) for x in X]
-        return explanations
-
-    # ======================
-    # Loss
-    # ======================
-    # TODO: to fix, but it is not used for plot or fitting
-    def loss(self, X_init, y_post):
-        y_pred = self.predict(X_init)
-        return mean_squared_error(y_pred, y_post)
 
     # ======================
     # Tree diagram
@@ -328,7 +296,7 @@ class ModelTreeInv(object):
 
             # Create node
             node_index = node["index"]
-            if self.no_repeat:
+            if self.pure_linear:
                 used_features = [feature_names[i] for i in range(
                     len(feature_names)) if i not in node["not_to_fit"]]
             else:
@@ -386,7 +354,7 @@ class ModelTreeInv(object):
             g.render(filename=output_filename, view=False, cleanup=True)
 
     # ======================
-    # Form inv_func diagram
+    # Produce functions and texts that we return
     # ======================
     def export_func(self, feature_names):
 
@@ -397,7 +365,7 @@ class ModelTreeInv(object):
                 return ""
 
             # Create node
-            if self.no_repeat:
+            if self.pure_linear:
                 used_features = [feature_names[i] for i in range(
                     len(feature_names)) if i not in node["not_to_fit"]]
             else:
@@ -427,7 +395,7 @@ class ModelTreeInv(object):
             opsign = op_sign(self.sign)
             if node["children"]["left"] is None and node["children"]["right"] is None:
                 path_str = ", ".join(path)
-                if self.no_repeat and len(node["not_to_fit"]) > 0:
+                if self.pure_linear and len(node["not_to_fit"]) > 0:
                     return "not Implemented"
                 coefs = node["model"].model
                 feature_lst = ["f{}:{}".format(i, coefs[i])
@@ -451,7 +419,12 @@ class ModelTreeInv(object):
 
         return invariant, generate_invariant, generate_txt, self.tree
 
+    # ======================
+    # Plot how model fits data
+    # ======================
     def plot_fitting_hist(self, filename, just_plot, feature_names):
+        # Load data from npy file if [just_plot] is True,
+        # save data in self.fitting_history into npy if [just_plot] is False
         if just_plot:
             hist = np.load('{}.npy'.format(filename),
                            allow_pickle='TRUE').item()
@@ -461,16 +434,20 @@ class ModelTreeInv(object):
             hist = self.fitting_history
             savefilename = "_".join(filename.split("_")[:-4])
             np.save('{}.npy'.format(savefilename), hist)
+        # Set up the plot
         nodes = list(hist.keys())
         n = len(nodes)
         max_x_num = len(hist["root"]["y"])
         plot_size = (max(min(int(0.2 * max_x_num), 2**9), 50), 30*n)
-        if n == 1:  # only one node
+        #  Set up subplot when there's only the root node
+        if n == 1:
             fig, axes = plt.subplots(2, 1, figsize=plot_size)
             # meaningless plot to fill the space for subplot 1
             axes[1].plot(np.arange(1), np.arange(1))
+        #  Set up subplots when there're more than one nodes
         else:
             fig, axes = plt.subplots(n, 1, figsize=plot_size)
+        # Plot each subplots
         for i in range(n):
             node = nodes[i]
             X = hist[node]["X"]
@@ -488,7 +465,6 @@ class ModelTreeInv(object):
             axes[i].set_xticks(xaxis)
             xticklabels = np.array([[round(q, 2) for q in row] for row in X])
             axes[i].set_xticklabels(xticklabels, fontsize=7, rotation=90)
-            # green if data point from invariant constraint blue ow
             colors = np.array([[0, 0, 1] for i in xaxis])
             axes[i].scatter(xaxis, y, c=colors, label="y", linewidth=7.0)
             axes[i].plot(xaxis, ypred, '-', label="y_pred", linewidth=6.0)
@@ -510,9 +486,9 @@ class ModelTreeInv(object):
 #
 # ***********************************
 
-def _splitter(node, model, header_init, sign,
-              no_repeat, not_to_fit, loss_func, min_samples_leaf,
-              j_feature_range=None,
+def _splitter(node, model, header, sign,
+              pure_linear, not_to_fit, leafmodelname, min_samples_leaf,
+              variable_indices=None,
               max_depth=5,
               search_type="greedy", n_search_grid=100):
 
@@ -534,7 +510,7 @@ def _splitter(node, model, header_init, sign,
                   "N": N}
         return result
 
-    split_range = [i for i in j_feature_range if i not in not_to_fit]
+    split_range = [i for i in variable_indices if i not in not_to_fit]
 
     # Perform threshold split search only if node has not hit max depth
     if (depth >= 0) and (depth < max_depth):
@@ -579,8 +555,8 @@ def _splitter(node, model, header_init, sign,
                 if not all(split_conditions):
                     continue
 
-                # Decide what the new "not_to_fit" is
-                if not no_repeat:
+                # Decide what the new [not_to_fit] is
+                if not pure_linear:
                     new_not_to_fit = []
                 else:
                     new_not_to_fit = not_to_fit+[j_feature]
@@ -591,9 +567,6 @@ def _splitter(node, model, header_init, sign,
                 loss_right, model_right = _fit_model(
                     X_right, y_right, model, not_to_fit=new_not_to_fit)
                 loss_split = math.sqrt(loss_left ** 2 + loss_right ** 2)
-
-                # print("Trying on {} based on {:.2f} with left loss {:.6f}, right loss {:.6f}, averaged loss {:.6f}, left has {:.0f}, right has {:.0f}".format(
-                #     j_feature, threshold, loss_left, loss_right, loss_split, N_left, N_right))
 
                 # Update best parameters if loss is lower
                 if loss_split < loss_best - THRESHOLD:
@@ -619,7 +592,14 @@ def _splitter(node, model, header_init, sign,
     return result
 
 
-def _fit_model(X, y, model, not_to_fit=[], verbose=False, node_name=None, fitting_hist=None):
+'''
+ Fit [model] to the data, [X], [y] (ignoring the data at indices in [not_to_fit])
+ If [record], also record how the learned model fits to the data and store that 
+ into [fitting_hist][node_name]
+'''
+
+
+def _fit_model(X, y, model, not_to_fit=[], record=False, node_name=None, fitting_hist=None):
     _, d = X.shape
     X_crop = np.array([[row[i] for i in range(d) if i not in not_to_fit]
                        for row in X])
@@ -628,9 +608,15 @@ def _fit_model(X, y, model, not_to_fit=[], verbose=False, node_name=None, fittin
     y_pred = model_copy.predict(X_crop)
     loss = model_copy.loss(X_crop, y, y_pred)  # X_used to used in loss
     assert loss >= 0.0
-    if verbose:
+    if record:
         fitting_hist[node_name] = _record_fitting(X_crop, y, y_pred)
     return loss, model_copy
+
+
+'''
+ Split X based on its value of [j_feature] according to whether they are [sign] [threshold], 
+ and split y such that entries in X still correspond to same entries in y. 
+'''
 
 
 def _split_data(j_feature, threshold, X, y, sign):
@@ -657,27 +643,9 @@ def _split_data(j_feature, threshold, X, y, sign):
             pdb.set_trace()
 
 
-def _predict0(model, not_to_fit, X):
-    if X.shape[0] > 0:
-        _, d = X.shape
-        X = [[row[i] for i in range(d) if i not in not_to_fit] for row in X]
-        try:
-            return model.predict(X)
-        except AttributeError:
-            pdb.set_trace()
-    return np.array([])
-
-
-def _concat0(first, second, axis):
-    if first.shape[axis] == 0:
-        return second
-    if second.shape[axis] == 0:
-        return first
-    try:
-        y = np.concatenate((first, second), axis=axis)
-    except ValueError:
-        pdb.set_trace()
-    return y
+'''
+ Record how the model prediction fits data in self.fitting_history
+'''
 
 
 def _record_fitting(X, y, y_pred):
@@ -685,13 +653,12 @@ def _record_fitting(X, y, y_pred):
             "y_pred": y_pred,
             "X": X,
             "not_to_fit": []
-            }  # indices where X_init start}
+            }
 
 
-def _expandby1(X):
-    dummybias = np.ones((len(X), 1))
-    newX = np.concatenate((np.array(X), dummybias), axis=1)
-    return newX
+'''
+ Return opsign such that for any a, b, (a sign b) iff not (a opsign b)
+'''
 
 
 def op_sign(sign):
