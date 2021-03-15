@@ -1,7 +1,7 @@
 from copy import deepcopy
 from model_tree.run_model_tree import runModelTree
 from model_tree.models.linear_regr_pnorm import linear_regr_2norm
-from src.ex_prog import geo_0, geo_0a, geo_0b,  geo_0c, ex1, ex2, ex3a, ex3b, ex3, ex3nest, ex3hard
+from src.ex_prog import geo0, geo0a, geo0b,  geo0c, ex1, ex2, ex3a, ex3b, ex3, ex3nest, ex3hard
 from src.ex_prog import ex4, ex4a, ex5, ex5y, ex5yp, ex5p, ex7, ex8, ex8p, ex9, ex9p, ex10,  ex11, ex11a
 from src.ex_prog import ex12, ex13, ex15, ex15a, ex17, ex18, ex19
 from src.ex_prog import ex20, ex21, ex22
@@ -65,8 +65,8 @@ FIT_intercept = True
 Regressors = [(linear_regr_2norm, "2norm")]
 
 '''
-A set of parameters to determine how much data to collect for the tool. 
-These are the set of hyper-parameters of the tool. 
+A set of parameters to determine how much data to collect for the tool.
+These are the set of hyper-parameters of the tool.
 '''
 # The number of runs from each initialization
 NUM_RUNS = int(sys.argv[1])
@@ -157,55 +157,58 @@ probinpts2 = [(prob1, prob2, prob3)
 
 
 '''
-Info of example programs in the following format: 
-"name": (instrumented programs, probinpts(choices for probabilities), INIT_GRID, 
+Info of example programs in the following format:
+"name": (instrumented programs, probinpts(choices for probabilities), INIT_GRID,
 sign of predicates in the model tree)
 
-For the sign, "<=" and ">" would be symmetric because "a > b" is just "not a <= b"; 
-and since the set of values we try in INIT_GRID and probinpts are discrete, 
-"<" and ">=" will have the same expressive power as ">" and "<=". 
-Thus, we can just input "<=" by default unless we want to try "==". 
+For the sign, "<=" and ">" would be symmetric because "a > b" is just "not a <= b";
+and since the set of values we try in INIT_GRID and probinpts are discrete,
+"<" and ">=" will have the same expressive power as ">" and "<=".
+Thus, we can just input "<=" by default unless we want to try "==".
 '''
 progs = {
     # 100 * 2 * 5 * 20 * 2
-    "geo_0": (geo_0, probinpts1, INIT_GRID1bool1int, "<="),
-    # "geo_0a": (geo_0a, probinpts1, INIT_GRID1bool2int, "<="),
-    # "geo_0b": (geo_0b, probinpts1, INIT_GRID1bool2int), #TODO
-    # "geo_0c": (geo_0c, probinpts1, INIT_GRID1bool2int), #TODO
-    # "ex2": (ex2, probinpts2, INIT_GRID0bool3int,"<="),
-    # "ex3": (ex3, probinpts2, INIT_GRID2bool1int), #TODO
-    # "ex3nest": (ex3nest, probinpts2, INIT_GRID2bool1int, "<="),
-    # "exp3nest_a": (exp3nest_a, probinpts2, INIT_GRID2bool1int, "<="),
-    # "ex3a": (ex3a, probinpts2, INIT_GRID1bool1int, "<="),
-    # "ex3b": (ex3b, probinpts2, INIT_GRID1bool1int,"<="),
-    # "ex4": (ex4, probinpts0, INIT_GRID0bool3int, "<="),
-    # "ex5": (ex5, probinpts0, INIT_GRID1bool2int, "<="),
-    # "ex5y": (ex5y, probinpts0, INIT_GRID1bool2int, "<="),
-    # "ex5yp": (ex5yp, probinpts1, INIT_GRID1bool2int, "<="),
-    # "ex5p": (ex5p, probinpts1, INIT_GRID1bool2int, "<="),
-    # "ex7": (ex7, probinpts1, INIT_GRID0bool3int,"<="),
-    # "ex8": (ex8, probinpts1, INIT_GRID0bool3int, "<="),
-    # "ex8a": (ex8a, probinpts1, INIT_GRID0bool3int, "<="),
-    # "ex9": (ex9, probinpts0, INIT_GRID0bool2int, "<="),
-    # "ex9p": (ex9p, probinpts1, INIT_GRID0bool2int, "<="),
-    # "ex10": (ex10, probinpts0, INIT_GRID0bool3int,"<="),
-    # "ex11": (ex11, probinpts1, INIT_GRID2bool0int, "<="),
-    # "ex11a": (ex11a, probinpts1, INIT_GRID2bool0int,"<="),
-    # "ex12": (ex12, probinpts2, INIT_GRID0bool1int,"<="),
-    # "ex13": (ex13, probinpts2, INIT_GRID0bool3int),
-    # "ex15": (ex15, probinpts0, INIT_GRID0bool2int, "<="),
-    # "ex15a": (ex15a, probinpts0, INIT_GRID0bool2int, "<="),
-    # "ex17": (ex17, probinpts1, INIT_GRID1bool1float,"=="),
-    # "ex18": (ex18, probinpts1, INIT_GRID0bool3int,"<="),
-    # "ex19": (ex19, probinpts2, INIT_GRID2bool0int,"<="),
-    # "exp19a": (exp19a, probinpts2, INIT_GRID2bool0int),
-    # "exp19b": (exp19b, probinpts2, INIT_GRID2bool0int),
-    # "ex20": (ex20, probinpts1, INIT_GRID3bool2int,"<="),
-    # "ex20a": (ex20a, probinpts1, INIT_GRID3bool2int),
-    # "ex21": (ex21, probinpts1, INIT_GRID0bool2int, "<="),
-    # "exp0a": (exp0a, probinpts1, INIT_GRID1bool1int),
-    # "ex3a": (exp3a, probinpts2, INIT_GRID1bool1int),
-    # "ex3b": (exp3b, probinpts2, INIT_GRID1bool1int),
+    "Geo0": (Geo0, probinpts1, INIT_GRID1bool1int, "<="),
+    "Geo1": (Geo1, probinpts1, INIT_GRID1bool2int, "<="),
+    "Geo2": (Geo2, probinpts1, INIT_GRID1bool2int, "<="),
+    "geo0b": (geo0b, probinpts1, INIT_GRID1bool2int),  # TODO
+    "geo0c": (geo0c, probinpts1, INIT_GRID1bool2int),  # TODO
+    "Fair": (Fair, probinpts2, INIT_GRID0bool3int, "<="),
+    "Mart": (Mart, probinpts2, INIT_GRID0bool3int, "<="),
+    "ex3": (ex3, probinpts2, INIT_GRID2bool1int),  # TODO
+    "ex3nest": (ex3nest, probinpts2, INIT_GRID2bool1int, "<="),
+    "exp3nest_a": (exp3nest_a, probinpts2, INIT_GRID2bool1int, "<="),
+    "ex3a": (ex3a, probinpts2, INIT_GRID1bool1int, "<="),
+    "ex3b": (ex3b, probinpts2, INIT_GRID1bool1int, "<="),
+    "Gambler0": (Gambler0, probinpts0, INIT_GRID0bool3int, "<="),
+    "ex4a": (ex4a, probinpts0, INIT_GRID0bool3int, "<="),
+    "GeoAr1": (GeoAr1, probinpts0, INIT_GRID1bool2int, "<="),
+    "GeoAr0": (GeoAr2, probinpts0, INIT_GRID1bool2int, "<="),
+    "GeoAr0": (GeoAr0, probinpts1, INIT_GRID1bool2int, "<="),
+    "GeoAr3": (GeoAr3, probinpts1, INIT_GRID1bool2int, "<="),
+    "Bin0": (Bin0, probinpts1, INIT_GRID0bool3int, "<="),
+    "Bin1": (Bin1, probinpts1, INIT_GRID0bool3int, "<="),
+    "Bin2": (Bin2, probinpts1, INIT_GRID0bool3int, "<="),
+    "Sum0": (Sum0, probinpts0, INIT_GRID0bool2int, "<="),
+    "Sum1": (Sum1, probinpts1, INIT_GRID0bool2int, "<="),
+    "DepRV": (DepRV, probinpts0, INIT_GRID0bool3int, "<="),
+    "Bias0": (Bias0, probinpts1, INIT_GRID2bool0int, "<="),
+    "Bias1": (Bias1, probinpts1, INIT_GRID2bool0int, "<="),
+    "Prinsys": (Prinsys, probinpts2, INIT_GRID0bool1int, "<="),
+    "Unif": (Unif, probinpts0, INIT_GRID0bool2int, "<="),
+    "Detm": (Detm, probinpts0, INIT_GRID0bool2int, "<="),
+    "ex17": (ex17, probinpts1, INIT_GRID1bool1float, "=="),
+    "Bias3": (Bias3, probinpts1, INIT_GRID0bool3int, "<="),
+    "Duel": (ex19, probinpts2, INIT_GRID2bool0int, "<="),
+    "exp19a": (exp19a, probinpts2, INIT_GRID2bool0int),
+    "exp19b": (exp19b, probinpts2, INIT_GRID2bool0int),
+    "LinExp": (LinExp, probinpts1, INIT_GRID3bool2int, "<="),
+    "RevBin": (Revbin, probinpts1, INIT_GRID0bool2int, "<="),
+    "ex20a": (ex20a, probinpts1, INIT_GRID3bool2int),
+    "ex21": (ex21, probinpts1, INIT_GRID0bool2int, "<="),
+    "exp0a": (exp0a, probinpts1, INIT_GRID1bool1int),
+    "ex3a": (exp3a, probinpts2, INIT_GRID1bool1int),
+    "ex3b": (exp3b, probinpts2, INIT_GRID1bool1int),
 }  # programs to run
 
 '''

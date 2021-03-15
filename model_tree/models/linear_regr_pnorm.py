@@ -56,7 +56,7 @@ class linear_regr_pnorm:
 
     def to_string(self, header, d=2):
         if self.fit_intercept:
-            header = header[:-1] + [""]
+            header = header[:-1] + ["1"]
         coef = self.model
         try:
             string = " + ".join(["{}*{}".format(round(coef[c], d), header[c])
