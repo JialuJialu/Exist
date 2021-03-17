@@ -1,11 +1,10 @@
+from src.ex_prog import Bias0Prinsys, Bias0direct, Prinsys, Duel, Unif, Detm, RevBin
+from src.ex_prog import LinExp, Seq0, Seq1, Nest, Sum0, Sum1, DepRV
+from src.ex_prog import GeoAr0, GeoAr1, GeoAr2, GeoAr3, Bin0, Bin1, Bin2, Bin3
+from src.ex_prog import Geo0, Geo1, Geo2, Fair, Mart, Gambler0
 from copy import deepcopy
 from model_tree.run_model_tree import runModelTree
 from model_tree.models.linear_regr_pnorm import linear_regr_2norm
-from src.ex_prog import geo0, geo0a, geo0b,  geo0c, ex1, ex2, ex3a, ex3b, ex3, ex3nest, ex3hard
-from src.ex_prog import ex4, ex4a, ex5, ex5y, ex5yp, ex5p, ex7, ex8, ex8p, ex9, ex9p, ex10,  ex11, ex11a
-from src.ex_prog import ex12, ex13, ex15, ex15a, ex17, ex18, ex19
-from src.ex_prog import ex20, ex21, ex22
-from src.ex_prog import exp0a, exp1a, exp1b, exp1c, exp3a, exp3b, exp12, exp19a, exp19b, exp21
 import os
 import pdb
 import itertools
@@ -166,49 +165,36 @@ and since the set of values we try in INIT_GRID and probinpts are discrete,
 "<" and ">=" will have the same expressive power as ">" and "<=".
 Thus, we can just input "<=" by default unless we want to try "==".
 '''
-progs = {
-    # 100 * 2 * 5 * 20 * 2
+
+prog = {
     "Geo0": (Geo0, probinpts1, INIT_GRID1bool1int, "<="),
     "Geo1": (Geo1, probinpts1, INIT_GRID1bool2int, "<="),
     "Geo2": (Geo2, probinpts1, INIT_GRID1bool2int, "<="),
-    "geo0b": (geo0b, probinpts1, INIT_GRID1bool2int),  # TODO
-    "geo0c": (geo0c, probinpts1, INIT_GRID1bool2int),  # TODO
-    "Fair": (Fair, probinpts2, INIT_GRID0bool3int, "<="),
-    "Mart": (Mart, probinpts2, INIT_GRID0bool3int, "<="),
-    "ex3": (ex3, probinpts2, INIT_GRID2bool1int),  # TODO
-    "ex3nest": (ex3nest, probinpts2, INIT_GRID2bool1int, "<="),
-    "exp3nest_a": (exp3nest_a, probinpts2, INIT_GRID2bool1int, "<="),
-    "ex3a": (ex3a, probinpts2, INIT_GRID1bool1int, "<="),
-    "ex3b": (ex3b, probinpts2, INIT_GRID1bool1int, "<="),
+    "Fair": (Fair, probinpts2, INIT_GRID2bool1int, "<="),
+    "Mart": (Mart, probinpts1, INIT_GRID0bool3int, "<="),
     "Gambler0": (Gambler0, probinpts0, INIT_GRID0bool3int, "<="),
-    "ex4a": (ex4a, probinpts0, INIT_GRID0bool3int, "<="),
-    "GeoAr1": (GeoAr1, probinpts0, INIT_GRID1bool2int, "<="),
-    "GeoAr0": (GeoAr2, probinpts0, INIT_GRID1bool2int, "<="),
     "GeoAr0": (GeoAr0, probinpts1, INIT_GRID1bool2int, "<="),
-    "GeoAr3": (GeoAr3, probinpts1, INIT_GRID1bool2int, "<="),
+    "GeoAr1": (GeoAr1, probinpts0, INIT_GRID1bool1int, "<="),
+    "GeoAr2": (GeoAr2, probinpts0, INIT_GRID1bool2int, "<="),
+    "GeoAr3": (GeoAr3, probinpts1, INIT_GRID1bool1int, "<="),
     "Bin0": (Bin0, probinpts1, INIT_GRID0bool3int, "<="),
     "Bin1": (Bin1, probinpts1, INIT_GRID0bool3int, "<="),
     "Bin2": (Bin2, probinpts1, INIT_GRID0bool3int, "<="),
-    "Sum0": (Sum0, probinpts0, INIT_GRID0bool2int, "<="),
-    "Sum1": (Sum1, probinpts1, INIT_GRID0bool2int, "<="),
+    "Bin3": (Bin3, probinpts0, INIT_GRID0bool3int, "<="),
+    "LinExp": (LinExp, probinpts0, INIT_GRID3bool2int, "<="),
+    "Seq0": (Seq0, probinpts2, INIT_GRID2bool1int, "<="),
+    "Seq1": (Seq1, probinpts2, INIT_GRID2bool1int, "<="),
+    "Nest": (Nest, probinpts2, INIT_GRID2bool1int, "<="),
+    "Sum0": (Sum0, probinpts1, INIT_GRID0bool2int, "<="),
+    "Sum1": (Sum1, probinpts0, INIT_GRID0bool2int, "<="),
     "DepRV": (DepRV, probinpts0, INIT_GRID0bool3int, "<="),
-    "Bias0": (Bias0, probinpts1, INIT_GRID2bool0int, "<="),
-    "Bias1": (Bias1, probinpts1, INIT_GRID2bool0int, "<="),
+    "Bias0Prinsys": (Bias0Prinsys, probinpts1, INIT_GRID2bool0int, "=="),
+    "Bias0direct": (Bias0direct, probinpts1, INIT_GRID2bool0int, "=="),
     "Prinsys": (Prinsys, probinpts2, INIT_GRID0bool1int, "<="),
+    "Duel": (Duel, probinpts2, INIT_GRID2bool0int, "<="),
     "Unif": (Unif, probinpts0, INIT_GRID0bool2int, "<="),
     "Detm": (Detm, probinpts0, INIT_GRID0bool2int, "<="),
-    "ex17": (ex17, probinpts1, INIT_GRID1bool1float, "=="),
-    "Bias3": (Bias3, probinpts1, INIT_GRID0bool3int, "<="),
-    "Duel": (ex19, probinpts2, INIT_GRID2bool0int, "<="),
-    "exp19a": (exp19a, probinpts2, INIT_GRID2bool0int),
-    "exp19b": (exp19b, probinpts2, INIT_GRID2bool0int),
-    "LinExp": (LinExp, probinpts1, INIT_GRID3bool2int, "<="),
-    "RevBin": (Revbin, probinpts1, INIT_GRID0bool2int, "<="),
-    "ex20a": (ex20a, probinpts1, INIT_GRID3bool2int),
-    "ex21": (ex21, probinpts1, INIT_GRID0bool2int, "<="),
-    "exp0a": (exp0a, probinpts1, INIT_GRID1bool1int),
-    "ex3a": (exp3a, probinpts2, INIT_GRID1bool1int),
-    "ex3b": (exp3b, probinpts2, INIT_GRID1bool1int),
+    "RevBin": (RevBin, probinpts1, INIT_GRID0bool2int, "<="),
 }  # programs to run
 
 '''

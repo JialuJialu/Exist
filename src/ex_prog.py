@@ -1099,7 +1099,7 @@ Known invariant w.r.t. post  [x = 0 and y − 1 = 0] − [x − 1 = 0 and y = 0]
 '''
 
 
-def Bias0(progname, inpt, hists,  init_tuple):
+def Bias0Prinsys(progname, inpt, hists,  init_tuple):
     if hists is None:
         vI = VarInfo(progname, [], ["x", "y", "x-y"], ninput=1)
         preds_str = vI.preds_str
@@ -1160,7 +1160,7 @@ Known invariant: [x != y] * x + [x == y] * 1/2
 '''
 
 
-def Bias1(progname, inpt, hists,  init_tuple):
+def Bias0direct(progname, inpt, hists,  init_tuple):
     if hists is None:
         vI = VarInfo(progname, [], ["x", "y", "x-y"], ninput=1)
         preds_str = vI.preds_str
