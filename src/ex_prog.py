@@ -103,12 +103,14 @@ class VarInfo:
             return self.ninput + len(self.const) + self.var.index(name)
         if name in self.const:
             return self.ninput + self.const.index(name)
-        if name.startswith("prob"):  # HACKY
+        if name == "1":
+            return self.ninput + len(self.const) + len(self.var)
+        if name.startswith("p"):  # HACKY
             return int(name[-1]) - 1
         raise Exception
 
     def linear_func(self, *args):
-        lst = np.zeros(self.ninput + len(self.const) + len(self.var))
+        lst = np.zeros(self.ninput + len(self.const) + len(self.var) + 1)
         for arg in args:
             if len(arg) == 2:
                 name, coef = arg
@@ -131,8 +133,8 @@ The number of iteration before [flip] turns to 1.
 
 Program variables: flip, z
 Guard variables: flip
-Augmentedfeatures: (1 - p)/p
-Known invariant: [flip != 0] * z + [flip == 0] * (z + (1 - p)/p)
+Augmented wpfeatures: (1 - p)/p
+wp(Geo 0, z) = [flip != 0] * z + [flip == 0] * (z + (1 - p)/p)
 '''
 
 
@@ -190,8 +192,8 @@ Geo0 with extra variable x creating noise.
 x gets doubled whenever z gets increased by 1.
 Program variables: flip, z, p1
 Guard variables: flip
-Augmentedfeatures: (1 - p)/p
-Known invariant: [flip != 0] * z + [flip == 0] * (z + (1 - p1)/p1)
+Augmented features: (1 - p)/p
+wp(Geo 0, z) = [flip != 0] * z + [flip == 0] * (z + (1 - p1)/p1)
 '''
 
 
@@ -237,6 +239,8 @@ def Geo1(progname, inpt, hists,  init_tuple):
 '''
 Geo1 with extra variable x creating noise such that 
 x gets increased by 1 whenever z gets increased by 1.
+
+wp(Geo2, z) = [flip != 0] * z + [flip == 0] * (z + (1 - p1)/p1)
 '''
 
 
@@ -284,7 +288,7 @@ This is a program tossing 2 fair coins in one while loop.
 Program variables: p1, p2, count, c1, c2
 Guard variables: c1 or c2
 Augmented features: (p1 + p2)/(p1 + p2 - p1 * p2)
-Known invariant: count + [not (c1 or c2)] * (p1 + p2) / (p1 + p2 - p1 * p2)
+wp(Fair, count) = count + [not (c1 or c2)] * (p1 + p2) / (p1 + p2 - p1 * p2)
 '''
 
 
@@ -338,7 +342,7 @@ current bet b, and get to keep all the captial c.
 Program variables: c, b, rounds, p
 Guard variables: b
 Augmented features: (1 - p1)/ p1
-Known invariant: rounds + [b > 0] * (1-p1)/(p1)
+wp(Mart, count) = rounds + [b > 0] * (1-p1)/(p1)
 '''
 
 
@@ -448,7 +452,7 @@ it exits the loop.
 Program variables: z, x, y, p
 Guard variable: z
 Augmented feature: p/((1-p)**2)
-Known Invariant: [z = 0]* x + [z != 0] (x + y(1-p)/p + (1-p)/(p**2))
+ wp(GeoAr0, x) =  [z = 0]* x + [z != 0] (x + y(1-p)/p + (1-p)/(p**2))
 '''
 
 
@@ -489,7 +493,7 @@ y = 0, p = 0.25
 Program variables: z, x, y
 Guard variable: z
 Augmented feature: None
-Known Invariant: I= [z = 0]* x + [z != 0] (x + 12)
+wp(GeoAr1, x) = [z = 0]* x + [z != 0] (x + 12)
 '''
 
 
@@ -529,7 +533,7 @@ p = 0.25
 Program variables: z, x
 Guard variable: z
 Augmented feature: None
-Known Invariant: I= [z = 0]* x + [z != 0] (x + 3y + (12)
+wp(GeoAr2, x) = [z = 0]* x + [z != 0] (x + 3y + (12)
 '''
 
 
@@ -569,7 +573,7 @@ y = 0
 Program variables: z, x, p
 Guard variable: z
 Augmented feature: (1-p)/(p^2)
-Known Invariant: [z = 0]* x + [z != 0] (x + (1-p)/(p^2))
+wp(GeoAr3, x) = [z = 0]* x + [z != 0] (x + (1-p)/(p^2))
 '''
 
 
@@ -613,7 +617,7 @@ n iterations in total, and in each iteration, increase x by y with probability p
 Program variables: x, n, y, p
 Guard variable: n
 Augmented features: p * n * y
-Known Invariant: I=[n > 0] * (x + p * n * y) + [n <= 0] * x
+wp(Bin0, x) = [n > 0] * (x + p * n * y) + [n <= 0] * x
 '''
 
 
@@ -652,9 +656,7 @@ pg-120 Fig 5.9
 Program variables: n, x, M, p
 Guard variables: n - M
 Augmented features: p*M, p*n
-Known Invariant: [n − M <= 0] * (x - p*n + p*M) 
-or [n − M < 0] * (x - p*n + p*M) + [n − M >= 0] * x
-TODO: check the invariant
+wp(Bin1, x) = [n − M < 0] * (x - p*n + p*M) + [n − M >= 0] * x
 '''
 
 
@@ -704,7 +706,7 @@ It is bin2 from Lagrange Interpolation paper by Chen et al. (their program bin2)
 Program variables: x, n, y, p
 Guard variable: n
 Augmented features: pn(n+1), (1-p)ny
-Known invariant: [n > 0] * 0.5pn(n+1) + (1-p)ny)
+wp(Bin2,x) = [n > 0] * (0.5pn(n+1) + (1-p)ny)
 '''
 
 
@@ -713,7 +715,7 @@ def Bin2(progname, inpt, hists,  init_tuple):
         vI = VarInfo(progname,
                      [], ["x", "y", "pn(n+1)", "(1-p)ny"], ninput=1)
         preds_str = vI.preds_str
-        known_inv = "[y >= 0 and n − 1 >= 0] * 0.5pn(n+1) + (1-p)ny)"
+        known_inv = "[y >= 0 and n − 1 >= 0] * (0.5pn(n+1) + (1-p)ny)"
         known_inv_model = None
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
                            variable_indices=vI.init_var_indices)
@@ -743,7 +745,7 @@ Same as Bin2 except set p=0.25
 Program variables: x, n, y
 Guard variable: n
 Augmented features: n(n+1), ny
-Known invariant: [n > 0] * 0.125n(n+1) + 0.75ny
+wp(Bin3,x) = [n > 0] * 0.125n(n+1) + 0.75ny
 '''
 
 
@@ -785,7 +787,7 @@ by the linearity of expectation.
 Program variables: count, n, x1, x2, x3
 Guard variable: n
 Augmented features: None
-Known invariant: [n<=0] * count + [n>0] * (count + n*(7*3/8))
+wp(LinExp, count) = [n<=0] * count + [n>0] * (count + n*(7*3/8))
 '''
 
 
@@ -827,7 +829,7 @@ Learn the preexpectation w.r.t. two sequencing loops at once
 Program variables: p1, p2, x, flip1, flip2
 Guard variable: flip1, flip2
 Augmented features: p1/(1-p1), p2/(1-p2) 
-Known preexpectation: x + [flip1 = 0] * p1/(1-p1) + [flip2 = 0] * (p2/(1-p2))
+wp(Seq0, x) = x + [flip1 = 0] * p1/(1-p1) + [flip2 = 0] * (p2/(1-p2))
 '''
 
 
@@ -873,7 +875,7 @@ Seq0 but one loop increases x, another loop decreases x.
 Program variables: p1, p2, x, flip1, flip2
 Guard variable: flip1, flip2
 Augmented features: p1/(1-p1), p2/(1-p2) 
-Known preexpectation: x + [flip1 = 0] * p1/(1-p1) + [flip2 = 0] * (-p2/(1-p2))
+wp(Seq1, x) = x + [flip1 = 0] * p1/(1-p1) + [flip2 = 0] * (-p2/(1-p2))
 '''
 
 
@@ -980,7 +982,7 @@ Adapted from the Lagrange Interpolation paper by Chen et. al.
 Program variables: x, n, p
 Guard variables: n
 Augmented features: n(n+1)
-Known invariant: I= [n > 0] * (x + p * (0.5n(n+1))) + [n <= 0] * x
+wp(Sum0, x) = [n > 0] * (x + p * (0.5n(n+1))) + [n <= 0] * x
 '''
 
 
@@ -1016,7 +1018,7 @@ Sum0 with specialized p
 Program variables: x, n
 Guard variables: n
 Augmented features: n(n+1)
-Known invariant: I= [n > 0] * (x + (0.25n(n+1))) + [n <= 0] * x
+wp(Sum1, x) = [n > 0] * (x + (0.25n(n+1))) + [n <= 0] * x
 '''
 
 
@@ -1052,7 +1054,7 @@ Adapted from the Lagrange Interpolation paper by Chen et. al.
 Program variables: x, n, y
 Guard: n
 Augmented features: n^2, nx, ny, xy
-Known invariant: (1/4)(n^2 + 2nx + 2ny + 4xy - n) when p = 1/2
+wp(DepRV, xy) ([n>0]*(1/4(n^2 + 2nx + 2ny + 4xy - n))+ [n<=0]*(xy)
 '''
 
 
@@ -1092,8 +1094,8 @@ Adpated from Prinsys Paper's Lst 7
 Program variables: x, y, p1
 Guard variables: x - y == =
 Augmented features: None
-Known invariant w.r.t. post  [x = 0 and y − 1 = 0] − [x − 1 = 0 and y = 0].  
-[x = 0 and y − 1 = 0] − [x − 1 = 0 and y = 0]
+wp(Bias0Prinsys, [x = 0 and y − 1 = 0] − [x − 1 = 0 and y = 0])
+= [x = 0 and y − 1 = 0] − [x − 1 = 0 and y = 0]
 = [not x and y] - [x and not y]
 = [x = 0]*(y) + [x = 1]*([y = 0]*(-1) + [y = 1] * 0)
 '''
@@ -1156,16 +1158,16 @@ Adpated from Prinsys Paper's Lst 7
 Program variables: x, y, p1
 Guard variables: x - y == 0
 Augmented features: None 
-Known invariant: [x != y] * x + [x == y] * 1/2
+wp(Bias0direct, x) = [x != y] * x + [x == y] * 1/2
 '''
 
 
 def Bias0direct(progname, inpt, hists,  init_tuple):
     if hists is None:
-        vI = VarInfo(progname, [], ["x", "y", "x-y"], ninput=1)
+        vI = VarInfo(progname, [], ["x", "y", "x=y"], ninput=1)
         preds_str = vI.preds_str
         known_inv = " [x - y != 0] * x + [x - y == 0] * 1/2"
-        known_inv_model = {"root": {"j_feature": vI.index_in_whole("x==y"),  # index for b
+        known_inv_model = {"root": {"j_feature": vI.index_in_whole("x=y"),  # index for b
                                     "threshold": 0,  # affected sign
                                     "split": True
                                     },
@@ -1182,7 +1184,7 @@ def Bias0direct(progname, inpt, hists,  init_tuple):
     x = init_tuple["bool"][0]
     y = init_tuple["bool"][1]
     # Record initial program states
-    hists.record_predicate([x, y, x-y])
+    hists.record_predicate([x, y, int(x == y)])
     # The original loop
     while(x-y == 0):
         d1 = bernoulli.rvs(size=1, p=p1)[0]
@@ -1207,7 +1209,7 @@ Adapted from the Prinsys paper's Lst. 2
 Program variables: p1, p2, x
 Guard variables: x
 Augmented features: None
-Known invariant: [x = 0] * (1-p2) + [x != 0] * [x = 1]
+wp(Prinsys, x==1) = [x = 0] * (1-p2) + [x != 0] * [x = 1]
 '''
 
 
@@ -1260,7 +1262,7 @@ Adapted from https://moves.rwth-aachen.de/wp-content/uploads/WS1819/probprog/pro
 Program variables: p1, p2, t, c
 Guard variables: c == 1
 Augmented features: p1/(p1 + p2 - p1 * p2), (1 - p2)/(p1 + p2 - p1 * p2)
-Assertion Invariant: [t = A and c = 0]+ [t = A and c = 1] * (p1/(p1 + p2 - p1 * p2))+ \
+wp(Duel, t) = [t = A and c = 0]+ [t = A and c = 1] * (p1/(p1 + p2 - p1 * p2))+ \
  [t = B and c = 1] * ((1 - p2)/(p1 + p2 - p1 * p2))
 '''
 
@@ -1321,7 +1323,7 @@ Sampling from uniform distribution
 Program variables: p, x, count
 Guard variable: x
 Augmented features: None
-Known invariant: count + [x <= 10]*(10-x+1)
+wp(Unif, count) = count + [x <= 10]*(10-x+1)
 '''
 
 
@@ -1393,9 +1395,11 @@ wp(body, [x > 0] * (z + x*(1/p)) + [x <= 0](z))
 = wp(probabilistic branch, [x > 0] * (z + 1 + x*(1/p)) + [x <= 0](z + 1))
 = p * ([x-1 > 0] * (z + 1 + (x-1)*(1/p)) + [x - 1 <= 0](z + 1)) 
 + (1-p) * ([x > 0] * (z + 1 + x*(1/p)) + [x <= 0](z + 1)) 
+= [x <= 0](z + 1) + [x = 1](z + 1 + x *(1-p)/p) + [x > 1]*(z + 1 + x*(1/p) - p/p)
 [G]*wp(body, [x > 0] * (z + x*(1/p)) + [x <= 0](z))
-= [x > 0] ([x > 1] (z + x/p ) + [x == 1](z + 1 + (1-p)x/p )
-= [x > 0] ([x > 1] (z + x/p ) + [x == 1](z + 1/p )
+= [x > 0] ([x = 1](z + 1 + (1-p)/p) + [x > 1]*(z + x*(1/p)))
+= [x > 0] ([x = 1](z + 1/p) + [x > 1]*(z + x*(1/p)))
+= [x > 0] (z + x*(1/p))
 '''
 
 

@@ -5,6 +5,7 @@ from src.ex_prog import Geo0, Geo1, Geo2, Fair, Mart, Gambler0
 from copy import deepcopy
 from model_tree.run_model_tree import runModelTree
 from model_tree.models.linear_regr_pnorm import linear_regr_2norm
+from model_tree.models.linear_regr import linear_regr
 import os
 import pdb
 import itertools
@@ -34,7 +35,7 @@ Bootstrapping = False
 Bootstrapping_ratio = 1
 PURE_linear = False
 FIT_intercept = True
-Regressors = [(linear_regr_2norm, "2norm")]
+Regressors = [(linear_regr, "scikit_regression")]
 '''
 # whether to collect the data again and update CSV or retriving data from
 # existing CSV and learn the model. CSV files are under directory `csv`.
@@ -43,7 +44,7 @@ UPDATE_CSV = True
 TESTING_KNOWN_MODEL = False
 # whether to plot how the model fits data. Plotting gives us insights into how the
 # model fits the data but takes time. Plots are under directory `output`.
-PLOT_fitting = True
+PLOT_fitting = False
 # PLOT_only only makes sense when PLOT_fitting is True. It specifies whether to
 # only plot with the historical data and model, or learn a model again before plotting.
 # If PLOT_only is True, there must be existing data in the `output` directory in the format of `.npy`.
@@ -61,14 +62,16 @@ PURE_linear = False
 # which is the linear function to fit with intercept.
 FIT_intercept = True
 # A list of choices for leaf models
-Regressors = [(linear_regr_2norm, "2norm")]
+# Regressors = [(linear_regr_2norm, "2norm")]
+Regressors = [(linear_regr, "scikit_regression")]
 
 '''
 A set of parameters to determine how much data to collect for the tool.
 These are the set of hyper-parameters of the tool.
 '''
 # The number of runs from each initialization
-NUM_RUNS = int(sys.argv[1])
+#NUM_RUNS = int(sys.argv[1])
+NUM_RUNS = 500
 # We learn max(numBAG) model trees in total
 # When Bootstrapping is False, we recollect the data multiple times to train multiple models;
 # When Bootstrapping is True, we only collect the data once,
@@ -166,36 +169,36 @@ and since the set of values we try in INIT_GRID and probinpts are discrete,
 Thus, we can just input "<=" by default unless we want to try "==".
 '''
 
-prog = {
-    "Geo0": (Geo0, probinpts1, INIT_GRID1bool1int, "<="),
-    "Geo1": (Geo1, probinpts1, INIT_GRID1bool2int, "<="),
-    "Geo2": (Geo2, probinpts1, INIT_GRID1bool2int, "<="),
-    "Fair": (Fair, probinpts2, INIT_GRID2bool1int, "<="),
-    "Mart": (Mart, probinpts1, INIT_GRID0bool3int, "<="),
-    "Gambler0": (Gambler0, probinpts0, INIT_GRID0bool3int, "<="),
-    "GeoAr0": (GeoAr0, probinpts1, INIT_GRID1bool2int, "<="),
-    "GeoAr1": (GeoAr1, probinpts0, INIT_GRID1bool1int, "<="),
-    "GeoAr2": (GeoAr2, probinpts0, INIT_GRID1bool2int, "<="),
-    "GeoAr3": (GeoAr3, probinpts1, INIT_GRID1bool1int, "<="),
-    "Bin0": (Bin0, probinpts1, INIT_GRID0bool3int, "<="),
-    "Bin1": (Bin1, probinpts1, INIT_GRID0bool3int, "<="),
-    "Bin2": (Bin2, probinpts1, INIT_GRID0bool3int, "<="),
-    "Bin3": (Bin3, probinpts0, INIT_GRID0bool3int, "<="),
-    "LinExp": (LinExp, probinpts0, INIT_GRID3bool2int, "<="),
-    "Seq0": (Seq0, probinpts2, INIT_GRID2bool1int, "<="),
-    "Seq1": (Seq1, probinpts2, INIT_GRID2bool1int, "<="),
-    "Nest": (Nest, probinpts2, INIT_GRID2bool1int, "<="),
-    "Sum0": (Sum0, probinpts1, INIT_GRID0bool2int, "<="),
-    "Sum1": (Sum1, probinpts0, INIT_GRID0bool2int, "<="),
-    "DepRV": (DepRV, probinpts0, INIT_GRID0bool3int, "<="),
-    "Bias0Prinsys": (Bias0Prinsys, probinpts1, INIT_GRID2bool0int, "=="),
+progs = {
+    # "Geo0": (Geo0, probinpts1, INIT_GRID1bool1int, "<="),
+    # "Geo1": (Geo1, probinpts1, INIT_GRID1bool2int, "<="),
+    # "Geo2": (Geo2, probinpts1, INIT_GRID1bool2int, "<="),
+    # "Fair": (Fair, probinpts2, INIT_GRID2bool1int, "<="),
+    # "Mart": (Mart, probinpts1, INIT_GRID0bool3int, "<="),
+    # "Gambler0": (Gambler0, probinpts0, INIT_GRID0bool3int, "<="),
+    # "GeoAr0": (GeoAr0, probinpts1, INIT_GRID1bool2int, "<="),
+    # "GeoAr1": (GeoAr1, probinpts0, INIT_GRID1bool1int, "<="),
+    # "GeoAr2": (GeoAr2, probinpts0, INIT_GRID1bool2int, "<="),
+    # "GeoAr3": (GeoAr3, probinpts1, INIT_GRID1bool1int, "<="),
+    # "Bin0": (Bin0, probinpts1, INIT_GRID0bool3int, "<="),
+    # "Bin1": (Bin1, probinpts1, INIT_GRID0bool3int, "<="),
+    # "Bin2": (Bin2, probinpts1, INIT_GRID0bool3int, "<="),
+    # "Bin3": (Bin3, probinpts0, INIT_GRID0bool3int, "<="),
+    # "LinExp": (LinExp, probinpts0, INIT_GRID3bool2int, "<="),
+    # "Seq0": (Seq0, probinpts2, INIT_GRID2bool1int, "<="),
+    # "Seq1": (Seq1, probinpts2, INIT_GRID2bool1int, "<="),
+    # "Nest": (Nest, probinpts2, INIT_GRID2bool1int, "<="),
+    # "Sum0": (Sum0, probinpts1, INIT_GRID0bool2int, "<="),
+    # "Sum1": (Sum1, probinpts0, INIT_GRID0bool2int, "<="),
+    # "DepRV": (DepRV, probinpts0, INIT_GRID0bool3int, "<="),
+    # "Bias0Prinsys": (Bias0Prinsys, probinpts1, INIT_GRID2bool0int, "=="),
     "Bias0direct": (Bias0direct, probinpts1, INIT_GRID2bool0int, "=="),
     "Prinsys": (Prinsys, probinpts2, INIT_GRID0bool1int, "<="),
     "Duel": (Duel, probinpts2, INIT_GRID2bool0int, "<="),
     "Unif": (Unif, probinpts0, INIT_GRID0bool2int, "<="),
     "Detm": (Detm, probinpts0, INIT_GRID0bool2int, "<="),
     "RevBin": (RevBin, probinpts1, INIT_GRID0bool2int, "<="),
-}  # programs to run
+}
 
 '''
 Run example programs in ex_prog.py to collect data

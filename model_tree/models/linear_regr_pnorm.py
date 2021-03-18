@@ -37,7 +37,11 @@ class linear_regr_pnorm:
         c = cp.Variable(d)
         cost = norm(X@c - y, p=self.pnorm)
         prob = cp.Problem(cp.Minimize(cost))
-        prob.solve()
+        try:
+            prob.solve()
+        except cp.error.SolverError:
+            import pdb
+            pdb.set_trace()
         self.model = [c.value.item(i) for i in range(len(c.value))]
         return
 

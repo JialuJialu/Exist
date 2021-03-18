@@ -102,7 +102,7 @@ class ModelTree(object):
                 node_name = "root" if parent is None else "{}_{}".format(
                     parent, direction)
                 loss_node, model_node = _fit_model(
-                    X_init, y_post, model, not_to_fit=not_to_fit, verbose=True, node_name=node_name, fitting_hist=self.fitting_history)
+                    X_init, y_post, model, not_to_fit=not_to_fit, record=True, node_name=node_name, fitting_hist=self.fitting_history)
                 node = {"name": node_name,
                         "index": container["index_node_global"],
                         "loss": loss_node,
@@ -208,7 +208,7 @@ class ModelTree(object):
                     node["threshold"] = result["threshold"]
                     (X_init, y_post) = node["data"]
                     _, node_model = _fit_model(
-                        X_init, y_post, model, verbose=True, node_name=name, fitting_hist=self.fitting_history)
+                        X_init, y_post, model, record=True, node_name=name, fitting_hist=self.fitting_history)
                     # Split
                     (X_init_l, y_post_l), (X_init_r, y_post_r) = _split_data(
                         node["j_feature"], node["threshold"], X_init, y_post, sign)
@@ -566,7 +566,7 @@ def _splitter(node, model, header, sign,
                     X_left, y_left, model, not_to_fit=new_not_to_fit)
                 loss_right, model_right = _fit_model(
                     X_right, y_right, model, not_to_fit=new_not_to_fit)
-                loss_split = math.sqrt(loss_left ** 2 + loss_right ** 2)
+                loss_split = model_right.combine_loss(loss_left, loss_right)
 
                 # Update best parameters if loss is lower
                 if loss_split < loss_best - THRESHOLD:
