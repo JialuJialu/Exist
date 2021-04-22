@@ -6,6 +6,7 @@
 import warnings
 import numpy as np
 import pdb
+import math
 import cvxpy as cp
 from cvxpy.atoms.axis_atom import AxisAtom
 from cvxpy.atoms.norm import norm
@@ -78,3 +79,6 @@ class linear_regr_2norm(linear_regr_pnorm):
         self.model = model
         self.pnorm = 2
         self.fit_intercept = fit_intercept
+
+    def combine_loss(self, left_loss, right_loss):
+        return math.sqrt(left_loss ** 2 + right_loss ** 2)

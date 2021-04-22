@@ -341,17 +341,17 @@ current bet b, and get to keep all the captial c.
 
 Program variables: c, b, rounds, p
 Guard variables: b
-Augmented features: (1 - p1)/ p1
-wp(Mart, count) = rounds + [b > 0] * (1-p1)/(p1)
+Augmented features: 1/p
+wp(Mart, count) = rounds + [b > 0] * (1/p)
 '''
 
 
 def Mart(progname, inpt, hists,  init_tuple):
     if hists is None:
-        vI = VarInfo(progname, ["(1-p1)/p1"],
+        vI = VarInfo(progname, ["(1/p"],
                      ["b", "c", "rounds"], ninput=1)
         preds_str = vI.preds_str
-        known_inv = "[b <= 0] * rounds + [b > 0] * (rounds + (1-p1)/p1)"
+        known_inv = "[b <= 0] * rounds + [b > 0] * (rounds + 1/p)"
         known_inv_model = {"root": {"j_feature": vI.index_in_whole("b"),
                                     "threshold": 0,
                                     "split": True
@@ -359,7 +359,7 @@ def Mart(progname, inpt, hists,  init_tuple):
                            "root_<=": {"split": False,
                                        "model": model_maker(vI.linear_func("rounds"))},
                            "root_>": {"split": False,
-                                      "model": model_maker(vI.linear_func("rounds", "(1-p1)/p1"))},
+                                      "model": model_maker(vI.linear_func("rounds", "1/p"))},
                            }
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
                            variable_indices=vI.init_var_indices)
@@ -370,7 +370,7 @@ def Mart(progname, inpt, hists,  init_tuple):
     rounds = init_tuple["int"][2]
     # Record initial program states
     hists.record_predicate(
-        [(1-p)/p,  b, c, rounds])
+        [1/p,  b, c, rounds])
     # The original loop
     while b > 0:
         d = bernoulli.rvs(size=1, p=p)
@@ -706,7 +706,7 @@ It is bin2 from Lagrange Interpolation paper by Chen et al. (their program bin2)
 Program variables: x, n, y, p
 Guard variable: n
 Augmented features: pn(n+1), (1-p)ny
-wp(Bin2,x) = [n > 0] * (0.5pn(n+1) + (1-p)ny)
+wp(Bin2,x) = x + [n > 0] * (0.5pn(n+1) + (1-p)ny)
 '''
 
 
@@ -715,7 +715,7 @@ def Bin2(progname, inpt, hists,  init_tuple):
         vI = VarInfo(progname,
                      [], ["x", "y", "pn(n+1)", "(1-p)ny"], ninput=1)
         preds_str = vI.preds_str
-        known_inv = "[y >= 0 and n − 1 >= 0] * (0.5pn(n+1) + (1-p)ny)"
+        known_inv = "x + [n − 1 >= 0] * (0.5pn(n+1) + (1-p)ny)"
         known_inv_model = None
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
                            variable_indices=vI.init_var_indices)
@@ -1128,19 +1128,19 @@ def Bias0Prinsys(progname, inpt, hists,  init_tuple):
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
                            variable_indices=vI.init_var_indices)
     # Initialize program variables
-    p1 = inpt[0]
+    p = inpt[0]
     x = init_tuple["bool"][0]
     y = init_tuple["bool"][1]
     # Record initial program states
     hists.record_predicate([x, y, x-y])
     # The original loop
     while(x-y == 0):
-        d1 = bernoulli.rvs(size=1, p=p1)[0]
+        d1 = bernoulli.rvs(size=1, p=p)[0]
         if(d1):
             x = 0
         else:
             x = 1
-        d2 = bernoulli.rvs(size=1, p=p1)[0]
+        d2 = bernoulli.rvs(size=1, p=p)[0]
         if(d2):
             y = 0
         else:
@@ -1263,7 +1263,7 @@ Program variables: p1, p2, t, c
 Guard variables: c == 1
 Augmented features: p1/(p1 + p2 - p1 * p2), (1 - p2)/(p1 + p2 - p1 * p2)
 wp(Duel, t) = [t = A and c = 0]+ [t = A and c = 1] * (p1/(p1 + p2 - p1 * p2))+ \
- [t = B and c = 1] * ((1 - p2)/(p1 + p2 - p1 * p2))
+ [t = B and c = 1] * ((1 - p2) * p1/(p1 + p2 - p1 * p2))
 '''
 
 
@@ -1387,19 +1387,7 @@ def Detm(progname, inpt, hists,  init_tuple):
 A program that has a diverging path with p 0 and (positively) almost surely terminate;
 and conceptually like inverse binonmial distribution. 
 Adapted from the example on page 125 of Kaminski's thesis 
-Known invariant: [x > 0] * (z + x*(1/p)) + [x <= 0](z)
-'''
-'''
-TODO
-wp(body, [x > 0] * (z + x*(1/p)) + [x <= 0](z))
-= wp(probabilistic branch, [x > 0] * (z + 1 + x*(1/p)) + [x <= 0](z + 1))
-= p * ([x-1 > 0] * (z + 1 + (x-1)*(1/p)) + [x - 1 <= 0](z + 1)) 
-+ (1-p) * ([x > 0] * (z + 1 + x*(1/p)) + [x <= 0](z + 1)) 
-= [x <= 0](z + 1) + [x = 1](z + 1 + x *(1-p)/p) + [x > 1]*(z + 1 + x*(1/p) - p/p)
-[G]*wp(body, [x > 0] * (z + x*(1/p)) + [x <= 0](z))
-= [x > 0] ([x = 1](z + 1 + (1-p)/p) + [x > 1]*(z + x*(1/p)))
-= [x > 0] ([x = 1](z + 1/p) + [x > 1]*(z + x*(1/p)))
-= [x > 0] (z + x*(1/p))
+wp(RevBin) = [x > 0] * (z + x*(1/p)) + [x <= 0](z)
 '''
 
 
