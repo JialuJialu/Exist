@@ -23,7 +23,7 @@ import math
 import matplotlib
 import matplotlib.pyplot as plt
 
-THRESHOLD = 1e-4
+THRESHOLD = 1e-7
 
 
 class ModelTree(object):
@@ -516,7 +516,7 @@ def _splitter(node, model, header, sign,
     if (depth >= 0) and (depth < max_depth):
 
         for j_feature in split_range:
-
+            
             # If using adaptive search type, decide on one to use
             search_type_use = search_type
             if search_type == "adaptive":
@@ -537,7 +537,6 @@ def _splitter(node, model, header, sign,
                     threshold_search.append(x_min + i*dx)
             else:
                 exit("err: invalid search_type = {} given!".format(search_type))
-
             threshold_search = list(set(threshold_search))  # deduplicate
             # Perform threshold split search on j_feature
             for threshold in threshold_search:
@@ -566,8 +565,9 @@ def _splitter(node, model, header, sign,
                     X_left, y_left, model, not_to_fit=new_not_to_fit)
                 loss_right, model_right = _fit_model(
                     X_right, y_right, model, not_to_fit=new_not_to_fit)
-                loss_split = model_right.combine_loss(loss_left, loss_right)
-
+                loss_split = model_right.combine_loss(
+                    loss_left, loss_right, len(X_left), len(X_right))
+                
                 # Update best parameters if loss is lower
                 if loss_split < loss_best - THRESHOLD:
                     print("previous best: {:.6f}".format(loss_best))

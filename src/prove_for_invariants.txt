@@ -210,7 +210,7 @@ Verify: Omitted
 wp(DepRV, xy) ([n>0]*(1/4(n^2 + 2nx + 2ny + 4xy - n))+ [n<=0]*(xy)
 Verify: Omitted
 --------------------------------------------------------------------------------
-wp(Bias0Prinsys, [x = 0 and y − 1 = 0] − [x − 1 = 0 and y = 0])
+wp(BiasPri, [x = 0 and y − 1 = 0] − [x − 1 = 0 and y = 0])
 = [x = 0 and y − 1 = 0] − [x − 1 = 0 and y = 0]
 Verify:
 let I = [x = 0 and y − 1 = 0] − [x − 1 = 0 and y = 0]
@@ -226,7 +226,7 @@ Thus, (x-y == 0) * wp(body, I) + [x = 0 and y − 1 = 0] − [x − 1 = 0 and y 
 So I is an invariant.  
 '''
 --------------------------------------------------------------------------------
-wp(Bias0direct, x) = [x != y] * x + [x = y] * 1/2
+wp(BiasDir, x) = [x != y] * x + [x = y] * 1/2
 Verify: 
 let I = [x != y] * x + [x = y] * 1/2
 wp(body, I) 
@@ -240,7 +240,7 @@ wp(body, I)
 = [x != y] * x + [x = y] * 1/2
 --------------------------------------------------------------------------------
 wp(Prinsys, x=1) = [x = 0] * (1-p2) + [x != 0] * [x = 1]
-Verify: Omitted
+Verify: 
 wp(body, I) = p1 * (1-p2) + (1-p1) * (p2*0 + (1-p2)*1)
 = 1 - p2
 thus, [G] * wp(body, I) = [G] * I

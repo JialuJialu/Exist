@@ -22,7 +22,7 @@ class RecordStat(object):
     When fitting the model tree, we only split on the variables.
     '''
 
-    def __init__(self, preds_str, known_inv, known_model, ninput, variable_indices):
+    def __init__(self, preds_str, known_inv, known_model, ninput, variable_indices, types):
         self.pred_all_runs = []
         self.predvec = []
         self.preds_str = [preds_str.strip()
@@ -33,6 +33,7 @@ class RecordStat(object):
         self.known_inv = known_inv
         self.known_model = known_model
         self.data_dict = defaultdict(list)
+        self.types = types
 
     def record_predicate(self, predvec):
         self.predvec = predvec
@@ -53,7 +54,6 @@ class RecordStat(object):
         data = self.data_dict
         dataarray = [list(inpt)[:ninput]+list(run)
                      for inpt in data.keys() for run in data[inpt]]
-
         datadict = {}
         fields = ["prob{}".format(i+1)
                   for i in range(ninput)] + self.preds_str + ["post"]

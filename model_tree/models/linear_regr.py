@@ -20,7 +20,10 @@ class linear_regr:
 
     def fit(self, X, y):
         self.model_raw.fit(X, y)
-        self.model = self.model_raw.coef_ + [self.model_raw.intercept_]
+        # import pdb
+        # pdb.set_trace()
+        self.model = list(self.model_raw.coef_)
+        self.model.append(self.model_raw.intercept_)
 
     def predict(self, X):
         return self.model_raw.predict(X)
@@ -31,8 +34,8 @@ class linear_regr:
             pdb.set_trace()
         return mean_squared_error(y, y_pred)
 
-    def combine_loss(self, left_loss, right_loss):
-        return left_loss + right_loss
+    def combine_loss(self, left_loss, right_loss, len_left, len_right):
+        return (left_loss * len_left + right_loss * len_right)/(len_left + len_right)
 
     def to_string(self, header, d=2):
         if self.fit_intercept:

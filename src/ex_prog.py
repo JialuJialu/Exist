@@ -75,28 +75,31 @@ class VarInfo:
         self.preds_str = ",".join(self.preds_str_lst)
         self.init_var_indices = np.arange(len(const), len(const) + len(var))
         self.ninput = ninput
-        filename = os.path.join("feature", "{}.txt".format(progname))
-        with open(filename, "w") as f:
-            f.write("benchmark: {}\n".format(progname))
-            f.write("\n")
-            f.write("branching_variables: \n")
-            for feature in var:
-                if feature in bools:
-                    f.write("{}: bool\n".format(feature))
-                else:
-                    f.write("{}: int\n".format(feature))
-            f.write("\n")
-            f.write("feature_expressions: \n")
-            for i in range(ninput):
-                f.write("f{}: prob{}\n".format(i, i+1))
-            for feature in const:
-                f.write("f{}: {}\n".format(
-                    const.index(feature)+ninput, feature))
-            for feature in var:
-                f.write("f{}: {}\n".format(
-                    var.index(feature)+len(const)+ninput, feature))
-            f.write("\n")
-        f.close()
+        self.types = {"bool": bools,
+                      "int": [feature for feature in var if feature not in bools]}
+
+        # filename = os.path.join("feature", "{}.txt".format(progname))
+        # with open(filename, "w") as f:
+        #     f.write("benchmark: {}\n".format(progname))
+        #     f.write("\n")
+        #     f.write("branching_variables: \n")
+        #     for feature in var:
+        #         if feature in bools:
+        #             f.write("{}: bool\n".format(feature))
+        #         else:
+        #             f.write("{}: int\n".format(feature))
+        #     f.write("\n")
+        #     f.write("feature_expressions: \n")
+        #     for i in range(ninput):
+        #         f.write("f{}: prob{}\n".format(i, i+1))
+        #     for feature in const:
+        #         f.write("f{}: {}\n".format(
+        #             const.index(feature)+ninput, feature))
+        #     for feature in var:
+        #         f.write("f{}: {}\n".format(
+        #             var.index(feature)+len(const)+ninput, feature))
+        #     f.write("\n")
+        # f.close()
 
     def index_in_whole(self, name):
         if name in self.var:
@@ -167,7 +170,7 @@ def Geo0(progname, inpt, hists,  init_tuple):
                        "model": model_maker(vI.linear_func("z"))},
         }
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           variable_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices, types=vI.types)
     # Initialize program variables
     p1 = inpt[0]
     z = init_tuple["int"][0]
@@ -214,7 +217,7 @@ def Geo1(progname, inpt, hists,  init_tuple):
                        "model": model_maker(vI.linear_func("z"))},
         }
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           variable_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices, types=vI.types)
     # Initialize program variables
     p1 = inpt[0]
     z = init_tuple["int"][0]
@@ -261,7 +264,7 @@ def Geo2(progname, inpt, hists,  init_tuple):
                        "model": model_maker(vI.linear_func("z"))},
         }
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           variable_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices, types=vI.types)
     # Initialize program variables
     p1 = inpt[0]
     z = init_tuple["int"][0]
@@ -308,7 +311,7 @@ def Fair(progname, inpt, hists,  init_tuple):
                                       "model": model_maker(vI.linear_func("count"))},  # count
                            }
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           variable_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices, types=vI.types)
     # Initialize program variables
     p1 = inpt[0]
     p2 = inpt[1]
@@ -348,7 +351,7 @@ wp(Mart, count) = rounds + [b > 0] * (1/p)
 
 def Mart(progname, inpt, hists,  init_tuple):
     if hists is None:
-        vI = VarInfo(progname, ["(1/p"],
+        vI = VarInfo(progname, ["1/p"],
                      ["b", "c", "rounds"], ninput=1)
         preds_str = vI.preds_str
         known_inv = "[b <= 0] * rounds + [b > 0] * (rounds + 1/p)"
@@ -362,7 +365,7 @@ def Mart(progname, inpt, hists,  init_tuple):
                                       "model": model_maker(vI.linear_func("rounds", "1/p"))},
                            }
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           variable_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices, types=vI.types)
     # Initialize program variables
     p = inpt[0]
     c = init_tuple["int"][0]
@@ -403,7 +406,7 @@ Invariant: z + [0 < x and x < y] * x * (y - x)
 def Gambler0(progname, inpt, hists,  init_tuple):
     if hists is None:
         vI = VarInfo(progname,
-                     [], ["x", "y", "z", "0 < x < y", "x * (y - x)"], ninput=1)
+                     [], ["x", "y", "z", "0 < x < y", "x * (y - x)"], ninput=0)
         preds_str = vI.preds_str
         known_inv = "z + [0 < x and x < y] * x * (y - x)"
         known_inv_model = {"root": {"j_feature": vI.index_in_whole("0 < x < y"),  # index for b
@@ -417,7 +420,7 @@ def Gambler0(progname, inpt, hists,  init_tuple):
                            }
 
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           variable_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices, types=vI.types)
     # Initialize program variables
     p = 0.5
     x = init_tuple["int"][0]
@@ -465,7 +468,7 @@ def GeoAr0(progname, inpt, hists,  init_tuple):
         known_inv_model = None
 
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           variable_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices, types=vI.types)
     # Initialize program variables
     p = inpt[0]
     x = init_tuple["int"][0]
@@ -500,12 +503,12 @@ wp(GeoAr1, x) = [z = 0]* x + [z != 0] (x + 12)
 def GeoAr1(progname, inpt, hists,  init_tuple):
     if hists is None:
         vI = VarInfo(progname,
-                     [], ["x", "y", "z"], ninput=1)
+                     [], ["x", "y", "z"], ninput=0)
         preds_str = vI.preds_str
         known_inv = "I= [z = 0]* x + [z != 0] (x + 12)"
         known_inv_model = None
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           variable_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices, types=vI.types)
     # Initialize program variables
     p = 0.25
     x = init_tuple["int"][0]
@@ -540,12 +543,12 @@ wp(GeoAr2, x) = [z = 0]* x + [z != 0] (x + 3y + (12)
 def GeoAr2(progname, inpt, hists,  init_tuple):
     if hists is None:
         vI = VarInfo(progname,
-                     [], ["x", "y", "z"], ninput=1)
+                     [], ["x", "y", "z"], ninput=0)
         preds_str = vI.preds_str
         known_inv = "[z = 0]* x + [z != 0] (x + 3y + 12)"
         known_inv_model = None
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           variable_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices, types=vI.types)
     # Initialize program variables
     p = 0.25
     x = init_tuple["int"][0]
@@ -585,7 +588,7 @@ def GeoAr3(progname, inpt, hists,  init_tuple):
         known_inv = "[z = 0]* x + [z != 0] (x + (1-p)/(p^2))"
         known_inv_model = None
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           variable_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices, types=vI.types)
     # Initialize program variables
     p = inpt[0]
     x = init_tuple["int"][0]
@@ -629,7 +632,7 @@ def Bin0(progname, inpt, hists,  init_tuple):
         known_inv = "[n > 0] * (x + p * n * y) + [n <= 0] * x"
         known_inv_model = None
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           variable_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices, types=vI.types)
     # Initialize program variables
     p = inpt[0]
     x = init_tuple["int"][0]
@@ -676,7 +679,7 @@ def Bin1(progname, inpt, hists,  init_tuple):
                            }
         known_inv = "[n − M < 0] * (x - p*n + p*M) + [n − M >= 0] * x"
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           variable_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices, types=vI.types)
     # Initialize program variables
     p = inpt[0]
     n = init_tuple["int"][0]
@@ -713,19 +716,19 @@ wp(Bin2,x) = x + [n > 0] * (0.5pn(n+1) + (1-p)ny)
 def Bin2(progname, inpt, hists,  init_tuple):
     if hists is None:
         vI = VarInfo(progname,
-                     [], ["x", "y", "pn(n+1)", "(1-p)ny"], ninput=1)
+                     [], ["x", "y", "n", "pn(n+1)", "(1-p)ny"], ninput=1)
         preds_str = vI.preds_str
         known_inv = "x + [n − 1 >= 0] * (0.5pn(n+1) + (1-p)ny)"
         known_inv_model = None
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           variable_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices, types=vI.types)
     # Initialize program variables
     p = inpt[0]
     x = init_tuple["int"][0]
     y = init_tuple["int"][1]
     n = init_tuple["int"][2]
     # Record initial program states
-    hists.record_predicate([x, y, p * n * (n+1), (1-p)*n*y])
+    hists.record_predicate([x, y, n, p * n * (n+1), (1-p)*n*y])
     # The original loop
     while(n > 0):
         d = bernoulli.rvs(size=1, p=p)[0]
@@ -752,20 +755,20 @@ wp(Bin3,x) = [n > 0] * 0.125n(n+1) + 0.75ny
 def Bin3(progname, inpt, hists,  init_tuple):
     if hists is None:
         vI = VarInfo(progname,
-                     [], ["x", "y", "n(n+1)", "ny"], ninput=1)
+                     [], ["x", "y", "n", "n(n+1)", "ny"], ninput=0)
         preds_str = vI.preds_str
         known_inv = "[y >= 0 and n > 0] * 0.125n(n+1) + 0.75ny)"
         known_inv_model = None
 
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           variable_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices, types=vI.types)
     # Initialize program variables
     p = 0.25
     x = init_tuple["int"][0]
     y = init_tuple["int"][1]
     n = init_tuple["int"][2]
     # Record initial program states
-    hists.record_predicate([x, y, n * (n+1), n*y])
+    hists.record_predicate([x, y, n, n * (n+1), n*y])
     # The original loop
     while(n > 0):
         d = bernoulli.rvs(size=1, p=p)[0]
@@ -793,12 +796,12 @@ wp(LinExp, count) = [n<=0] * count + [n>0] * (count + n*(7*3/8))
 
 def LinExp(progname, inpt, hists,  init_tuple):
     if hists is None:
-        vI = VarInfo(progname, [], ["x1 ", "x2", "x3", "n", "count"], ninput=1)
+        vI = VarInfo(progname, [], ["x1 ", "x2", "x3", "n", "count"], ninput=0)
         preds_str = vI.preds_str
         known_inv_model = None
         known_inv = "[n<=0] * count + [n>0] * (count + n*(7*3/8))"
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           variable_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices, types=vI.types)
     # Initialize program variables
     n = init_tuple["int"][0]
     count = init_tuple["int"][1]
@@ -842,7 +845,7 @@ def Seq0(progname, inpt, hists,  init_tuple):
         known_inv_model = None
 
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           variable_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices, types=vI.types)
     # Initialize program variables
     p1 = inpt[0]
     p2 = inpt[1]
@@ -888,7 +891,7 @@ def Seq1(progname, inpt, hists,  init_tuple):
         known_inv_model = None
 
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           variable_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices, types=vI.types)
     # Initialize program variables
     p1 = inpt[0]
     p2 = inpt[1]
@@ -934,7 +937,7 @@ def Nest(progname, inpt, hists,  init_tuple):
         known_inv_model = None
 
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           variable_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices, types=vI.types)
     # Initialize program variables
     p1 = inpt[0]
     p2 = inpt[1]
@@ -990,11 +993,11 @@ def Sum0(progname, inpt, hists,  init_tuple):
     if hists is None:
         vI = VarInfo(progname, [], ["x", "n", "pn", "pn^2"], ninput=1)
         preds_str = vI.preds_str
-        known_inv = "[n > 0] * (x + 0.5pn(n+1)) + [n <= 0] * x"
+        known_inv = "[n > 0] * (x + 0.5pn^2 + 0.5pn) + [n <= 0] * x"
         known_inv_model = None
 
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           variable_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices, types=vI.types)
     # Initialize program variables
     p = inpt[0]
     x = init_tuple["int"][0]
@@ -1024,13 +1027,13 @@ wp(Sum1, x) = [n > 0] * (x + (0.25n(n+1))) + [n <= 0] * x
 
 def Sum1(progname, inpt, hists,  init_tuple):
     if hists is None:
-        vI = VarInfo(progname, [], ["x", "n", "n^2"], ninput=1)
+        vI = VarInfo(progname, [], ["x", "n", "n^2"], ninput=0)
         preds_str = vI.preds_str
         known_inv = "[n > 0] * (x + 0.25 * n(n+1)) + [n <= 0] * x"
         known_inv_model = None
 
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           variable_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices, types=vI.types)
     # Initialize program variables
     p = 0.5
     x = init_tuple["int"][0]
@@ -1061,12 +1064,12 @@ wp(DepRV, xy) ([n>0]*(1/4(n^2 + 2nx + 2ny + 4xy - n))+ [n<=0]*(xy)
 def DepRV(progname, inpt, hists,  init_tuple):
     if hists is None:
         vI = VarInfo(progname, [], ["x", "n", "y",
-                                    "n^2", "nx", "ny", "xy"], ninput=1)
+                                    "n^2", "nx", "ny", "xy"], ninput=0)
         preds_str = vI.preds_str
         known_inv = "[n>0]*(1/4(n^2 + 2nx + 2ny + 4xy - n))+ [n<=0]*(xy)"
         known_inv_model = None
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           variable_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices, types=vI.types)
     # Initialize program variables
     p = 0.5
     x = init_tuple["int"][0]
@@ -1094,18 +1097,18 @@ Adpated from Prinsys Paper's Lst 7
 Program variables: x, y, p1
 Guard variables: x - y == =
 Augmented features: None
-wp(Bias0Prinsys, [x = 0 and y − 1 = 0] − [x − 1 = 0 and y = 0])
+wp(BiasPri, [x = 0 and y − 1 = 0] − [x − 1 = 0 and y = 0])
 = [x = 0 and y − 1 = 0] − [x − 1 = 0 and y = 0]
 = [not x and y] - [x and not y]
 = [x = 0]*(y) + [x = 1]*([y = 0]*(-1) + [y = 1] * 0)
 '''
 
 
-def Bias0Prinsys(progname, inpt, hists,  init_tuple):
+def BiasPri(progname, inpt, hists,  init_tuple):
     if hists is None:
         vI = VarInfo(progname, [], ["x", "y", "x-y"], ninput=1)
         preds_str = vI.preds_str
-        known_inv = "[x = 0 and y − 1 = 0] − [x − 1 = 0 and y = 0]"
+        known_inv = "[x = 0, y = 1] − [x = 1, y = 0]"
         known_inv_model = {"root": {"j_feature": vI.index_in_whole("x"),  # index for b
                                     "threshold": 0,  # affected sign
                                     "split": True
@@ -1126,7 +1129,7 @@ def Bias0Prinsys(progname, inpt, hists,  init_tuple):
                                          "model": model_maker(vI.linear_func(("1", 1)))}
                            }
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           variable_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices, types=vI.types)
     # Initialize program variables
     p = inpt[0]
     x = init_tuple["bool"][0]
@@ -1158,11 +1161,11 @@ Adpated from Prinsys Paper's Lst 7
 Program variables: x, y, p1
 Guard variables: x - y == 0
 Augmented features: None 
-wp(Bias0direct, x) = [x != y] * x + [x == y] * 1/2
+wp(BiasDir, x) = [x != y] * x + [x == y] * 1/2
 '''
 
 
-def Bias0direct(progname, inpt, hists,  init_tuple):
+def BiasDir(progname, inpt, hists,  init_tuple):
     if hists is None:
         vI = VarInfo(progname, [], ["x", "y", "x=y"], ninput=1)
         preds_str = vI.preds_str
@@ -1178,7 +1181,7 @@ def Bias0direct(progname, inpt, hists,  init_tuple):
                            }
 
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           variable_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices, types=vI.types)
     # Initialize program variables
     p1 = inpt[0]
     x = init_tuple["bool"][0]
@@ -1233,7 +1236,7 @@ def Prinsys(progname, inpt, hists,  init_tuple):
                                           "model": model_maker(vI.linear_func())},
                            }
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           variable_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices, types=vI.types)
     # Initialize program variables
     p1, p2 = inpt[0], inpt[1]
     x = init_tuple["int"][0]
@@ -1290,7 +1293,7 @@ def Duel(progname, inpt, hists,  init_tuple):
         known_inv = "[t = A and c = 0]+ [t = A and c = 1] * (p1/(p1 + p2 - p1 * p2))+ \
  [t = B and c = 1] * ((1 - p2)p1/(p1 + p2 - p1 * p2))"
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           variable_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices, types=vI.types)
 
     # Initialize program variables
     p1, p2 = inpt[0], inpt[1]
@@ -1329,14 +1332,13 @@ wp(Unif, count) = count + [x <= 10]*(10-x+1)
 
 def Unif(progname, inpt, hists,  init_tuple):
     if hists is None:
-        vI = VarInfo(progname, [], ["x", "count"], ninput=1)
+        vI = VarInfo(progname, [], ["x", "count"], ninput=0)
         preds_str = vI.preds_str
         known_inv_model = None
         known_inv = "count + [x <= 10]*(10-x+1)"
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           variable_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices, types=vI.types)
     # Initialize program variables
-    p = inpt[0]
     x = init_tuple["int"][0]
     count = init_tuple["int"][1]
     # Record initial program states
@@ -1362,14 +1364,13 @@ Known invariant: count + [x <= 10]*(10-x+1)
 
 def Detm(progname, inpt, hists,  init_tuple):
     if hists is None:
-        vI = VarInfo(progname, [], ["x", "count"], ninput=1)
+        vI = VarInfo(progname, [], ["x", "count"], ninput=0)
         preds_str = vI.preds_str
         known_inv_model = None
         known_inv = "count + [x <= 10]*(10-x+1)"
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           variable_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices, types=vI.types)
     # Initialize program variables
-    p = inpt[0]
     x = init_tuple["int"][0]
     count = init_tuple["int"][1]
     # Record initial program states
@@ -1406,7 +1407,7 @@ def RevBin(progname, inpt, hists,  init_tuple):
                            }
         known_inv = "[x >= 1] * (z + x*(1/p)) + [x <= 0](z)"
         hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           variable_indices=vI.init_var_indices)
+                           variable_indices=vI.init_var_indices, types=vI.types)
     # Initialize program variables
     p = inpt[0]
     x = init_tuple["int"][0]
@@ -1422,105 +1423,3 @@ def RevBin(progname, inpt, hists,  init_tuple):
     # Record the realized post
     hists.record_predicate_end(z)
     return hists
-
-
-# ----------------------------------------------------
-# the following are not included now
-'''
-http://www-i2.informatik.rwth-aachen.de/pub/index.php?type=download&pub_id=1274
-pg-120
-generate biased coin from a fair coin.
-The algorithm generates a sample x = 1 with probability p and
-x = 0 with probability 1 − p by repeatedly fliping a fair coin when (p == 1/2),
-which works because
-    # 1. for p > 0.5: with p 0.5, always return x = 1;
-    # with p 0.5, recurse with p' = p*2 - 1 =(p-0.5)*2,
-    # by induction, returns x = 1 with p (p-0.5)*2 in this case. 
-    # Thus, in expectation, it returns x = 1 with p 0.5 * 1 + 0.5 * (p-0.5)*2 = p
-    # 2. for p = 0.5: with p 0.5, return x = 1, with 0.5, recurse with p' = 0,
-    # which always returns x = 0.
-    # 3. for p < 0.5: with p 0.5, always return x = 0;
-    # with p 0.5, recurse with p' = 2 * p,
-    # thus in expectation, it returns x = 1 with p 0.5 * 2 * p = p
-Fig 5.8
-I = [p >= 0 and p − 1 <= 0 and (b − 1 == 0 or p == 0 or p − 1 == 0)] * (p)
- (b − 1 == 0 or p == 0 or p− 1 == 0)] is assertion invariant. 
- 
- TODO
-'''
-
-
-def ex17(progname, inpt, hists,  init_tuple):
-    if hists is None:
-        vI = VarInfo(progname,
-                     [], ["x", "b"], ninput=1)
-        preds_str = vI.preds_str
-        known_inv_model = {
-            "easy_side": "<="
-        }
-        known_inv = "[p >= 0 and p − 1 <= 0] * (p)"
-        hists = RecordStat(preds_str, known_inv, known_inv_model, ninput=vI.ninput,
-                           variable_indices=vI.init_var_indices)
-
-    p = init_tuple["float"][0]
-    b = init_tuple["bool"][0]
-    init_p, init_b = p, b
-    hists.record_predicate([init_p, init_b, p, b])
-    while b:
-        b = bernoulli.rvs(size=1, p=0.5)[0]
-        if b:  # if b==1, x = x*2 mod 1
-            p = 2 * p
-            if(p - 1 >= 0):
-                p = p - 1
-        elif(p - 0.5 >= 0):
-            p = 1
-        else:
-            p = 0
-    hists.record_predicate_end(p)
-    return hists
-
-
-'''
-let I = [p >= 0 and  p − 1 <= 0] * (p)
-wp(body, I) = [b] * wp(block, I) + [not b and p >= 0.5] * wp(p=1, I) + [not b and p < 0.5] * wp(p=0, I)
-= [b] * wp(block, I) + [not b and p >= 0.5] * 1 + [not b and p < 0.5] * 0
-= [b] * wp(p = 2p, [p>=1] * [p-1 >= 0 and  p − 2 <= 0 ] * (p-1) + [p<1] * I )+ [not b and p >= 0.5] * 1 + [not b and p < 0.5] * 0
-= [b] * ([2p>=1] * [2p-1 >= 0 and  2p − 2 <= 0 ] * (2p-1) + [2p<1] * [2p >= 0 and  2p − 1 <= 0 ] * (2p) )+ [not b and p >= 0.5] * 1 + [not b and p < 0.5] * 0
-= [b] * ([p>=0.5] * [ p <= 1] * (2p-1) + [p<0.5] * [2p >= 0] * (2p) )+ [not b and p >= 0.5] * 1 + [not b and p < 0.5] * 0
-[G]*wp(body, I) =  [b] * ([p>=0.5] * [ p <= 1] * (2p-1) + [p<0.5] * [2p >= 0] * (2p) )
-
-let I = (b − 1 == 0 or p == 0 or p− 1 == 0) * [p >= 0 and  p − 1 <= 0 ] * (p)
-then wp(body, I) = [b] * wp(first block, I) + [not b and p >= 0.5] * 1 + [not b and p < 0.5] * 0
- wp(block, I)
-= wp(p = 2p, [p - 1 >= 0] * (b − 1 == 0 or p-1 == 0 or p− 2 == 0) * [p-1 >= 0 and  p − 2 <= 0 ] * (p-1) + [p < 1] * I)
-= [2p - 1 >= 0] * (b − 1 == 0 or 2p-1 == 0 or 2p− 2 == 0) * [2p-1 >= 0 and  2p − 2 <= 0 ] * (2p-1) + [2p < 1] * (b − 1 == 0 or 2p == 0 or 2p− 1 == 0) * [2p >= 0 and  2p − 1 <= 0 ] * (2p))
-= [p == 1] + [p!= 0.5 and p!= 1 and b=1] ([0.5<p<=1] * (2p-1) + [0<=p<0.5] * (2p)])
-very strange
-
-wpe(body, p) = [b] * wp(first block, p) + [not b and p >= 0.5] * 1 + [not b and p < 0.5] * 0
-'''
-
-
-'''
-SKIPPED for now
-Coupon collector problem:
-Kaminski
-# col= number of coupons collected till now
-I= 1 + Sum_(l=0 to w)[x>l] * (3 + 2 * Sum_(k=0 to w) ((#col+l)/N)^k) - \
-   (2 * [cp[i] == 0]*[x>0] * Sum_(k=0 to w) (#col/N)^k)
-'''
-
-
-def ex16(progname, inpt, hists,  init_tuple, constraint):
-    x = 10
-    cp = np.zeros(20)
-    i = 1
-    z = 0
-    p1, p2 = inpt[:2]
-    while(x-1 >= 0):
-        while not(cp[i] == 0):
-            i = random.randint(1, 10)
-        cp[i] = 1
-        x = x - 1
-        z = z + 1
-    return z

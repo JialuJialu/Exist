@@ -1,4 +1,4 @@
-from src.ex_prog import Bias0Prinsys, Bias0direct, Prinsys, Duel, Unif, Detm, RevBin
+from src.ex_prog import BiasPri, BiasDir, Prinsys, Duel, Unif, Detm, RevBin
 from src.ex_prog import LinExp, Seq0, Seq1, Nest, Sum0, Sum1, DepRV
 from src.ex_prog import GeoAr0, GeoAr1, GeoAr2, GeoAr3, Bin0, Bin1, Bin2, Bin3
 from src.ex_prog import Geo0, Geo1, Geo2, Fair, Mart, Gambler0
@@ -39,7 +39,7 @@ Regressors = [(linear_regr, "scikit_regression")]
 '''
 # whether to collect the data again and update CSV or retriving data from
 # existing CSV and learn the model. CSV files are under directory `csv`.
-UPDATE_CSV = True
+UPDATE_CSV = False
 # whether to test how a known model fits data, v.s. learn a model from data without prior knowledge
 TESTING_KNOWN_MODEL = False
 # whether to plot how the model fits data. Plotting gives us insights into how the
@@ -76,15 +76,15 @@ NUM_RUNS = 500
 # When Bootstrapping is False, we recollect the data multiple times to train multiple models;
 # When Bootstrapping is True, we only collect the data once,
 # and subsample to get `bags` and learn multiple models.
-numBAG = [3, 5, 10, 15]
+numBAG = [1,3,5]
 # Max depth of the model tree
-MAX_DEPTH = 3
+MAX_DEPTH = 2
 # Minimum number of samples
 MIN_SAMPLE_LEAF = 5
 # The space for boolean on which we perform grid search
 bool_space = np.linspace(0, 1, 2)
 # The space for integer on which we perform grid search
-int_space = np.linspace(0, 4, 5)
+int_space = np.linspace(-2,2,5)
 # The space for probability choices on which we perform grid search
 prob_space = np.linspace(0, 1, 11)
 # Grids of initial states for each program based on the number of variables
@@ -150,13 +150,23 @@ INIT_GRID0bool2int = [{"bool": [],
 trivial_space = np.linspace(0, 0, 1)
 normal = np.linspace(0.1, 0.9, 9)
 fine_grid = np.linspace(0.05, 0.95, 19)
-probinpts0 = [(prob1, prob2, prob3)
-              for prob1 in trivial_space for prob2 in trivial_space for prob3 in trivial_space]
-probinpts1 = [(prob1, prob2, prob3)
-              for prob1 in normal for prob2 in trivial_space for prob3 in trivial_space]
-probinpts2 = [(prob1, prob2, prob3)
-              for prob1 in normal for prob2 in normal for prob3 in trivial_space]
+probinpts0 = [()]
+probinpts1 = [(prob1, ) for prob1 in normal]
+probinpts2 = [(prob1, prob2) for prob1 in normal for prob2 in normal]
 
+# Rounding to [decimal] if [decimal_rounding] is true, otherwise round to [provided_value]
+
+
+def rounding(number, decimal_rounding, decimal, provided_value=None):
+    if decimal_rounding:
+        return round(number, decimal)
+    else:
+        distance = np.abs(np.array(provided_value) - number)
+        idx = list(distance).index(min(distance))
+        return provided_value[idx]
+
+
+def default_rounding(x): return rounding(x, True, 4)
 
 '''
 Info of example programs in the following format:
@@ -170,16 +180,16 @@ Thus, we can just input "<=" by default unless we want to try "==".
 '''
 
 progs = {
-    # "Geo0": (Geo0, probinpts1, INIT_GRID1bool1int, "<="),
-    # "Geo1": (Geo1, probinpts1, INIT_GRID1bool2int, "<="),
-    # "Geo2": (Geo2, probinpts1, INIT_GRID1bool2int, "<="),
-    # "Fair": (Fair, probinpts2, INIT_GRID2bool1int, "<="),
+    # "Geo0": (Geo0, probinpts1, INIT_GRID1bool1int, "=="),
+    # "Geo1": (Geo1, probinpts1, INIT_GRID1bool2int, "=="),
+    # "Geo2": (Geo2, probinpts1, INIT_GRID1bool2int, "=="),
+    # "Fair": (Fair, probinpts2, INIT_GRID2bool1int, "=="),
     # "Mart": (Mart, probinpts1, INIT_GRID0bool3int, "<="),
     # "Gambler0": (Gambler0, probinpts0, INIT_GRID0bool3int, "<="),
-    # "GeoAr0": (GeoAr0, probinpts1, INIT_GRID1bool2int, "<="),
+    "GeoAr0": (GeoAr0, probinpts1, INIT_GRID1bool2int, "<="),
     # "GeoAr1": (GeoAr1, probinpts0, INIT_GRID1bool1int, "<="),
     # "GeoAr2": (GeoAr2, probinpts0, INIT_GRID1bool2int, "<="),
-    # "GeoAr3": (GeoAr3, probinpts1, INIT_GRID1bool1int, "<="),
+    "GeoAr3": (GeoAr3, probinpts1, INIT_GRID1bool1int, "<="),
     # "Bin0": (Bin0, probinpts1, INIT_GRID0bool3int, "<="),
     # "Bin1": (Bin1, probinpts1, INIT_GRID0bool3int, "<="),
     # "Bin2": (Bin2, probinpts1, INIT_GRID0bool3int, "<="),
@@ -191,15 +201,16 @@ progs = {
     # "Sum0": (Sum0, probinpts1, INIT_GRID0bool2int, "<="),
     # "Sum1": (Sum1, probinpts0, INIT_GRID0bool2int, "<="),
     # "DepRV": (DepRV, probinpts0, INIT_GRID0bool3int, "<="),
-    # "Bias0Prinsys": (Bias0Prinsys, probinpts1, INIT_GRID2bool0int, "=="),
-    "Bias0direct": (Bias0direct, probinpts1, INIT_GRID2bool0int, "=="),
-    "Prinsys": (Prinsys, probinpts2, INIT_GRID0bool1int, "<="),
-    "Duel": (Duel, probinpts2, INIT_GRID2bool0int, "<="),
-    "Unif": (Unif, probinpts0, INIT_GRID0bool2int, "<="),
-    "Detm": (Detm, probinpts0, INIT_GRID0bool2int, "<="),
-    "RevBin": (RevBin, probinpts1, INIT_GRID0bool2int, "<="),
+    # "BiasPri": (BiasPri, probinpts1, INIT_GRID2bool0int, "=="),
+    # "BiasDir": (BiasDir, probinpts1, INIT_GRID2bool0int, "<="),
+    # "Prinsys": (Prinsys, probinpts2, INIT_GRID0bool1int, "<="),
+    # "Duel": (Duel, probinpts2, INIT_GRID2bool0int, "<="),
+    # "Unif": (Unif, probinpts0, INIT_GRID0bool2int, "<="),
+    # "Detm": (Detm, probinpts0, INIT_GRID0bool2int, "<="),
+    # "RevBin": (RevBin, probinpts1, INIT_GRID0bool2int, "<="),
 }
 
+# example_types = {}
 '''
 Run example programs in ex_prog.py to collect data
 '''
@@ -218,6 +229,7 @@ def get_stats(progname, proginfo, filename):
                     hists.end_sampling_runs(inpt)
                 except AttributeError:
                     pdb.set_trace()
+        # example_types[progname] = hists.types
         df = hists.to_df()
         filename_csv = os.path.join("csv", "{}.csv".format(filename))
         df.to_csv(filename_csv, index=False)
@@ -268,9 +280,9 @@ def main():
                 invariant, inv_func_recurse, generate_txt, learned_tree = m.run()
                 if TESTING_KNOWN_MODEL or PLOT_only:
                     continue
-                picklename = os.path.join(
-                    "pickle", "{}.p".format(filename))
-                pickle.dump(learned_tree, open(picklename, 'wb'))
+                # picklename = os.path.join(
+                #     "pickle", "{}.p".format(filename))
+                # pickle.dump(learned_tree, open(picklename, 'wb'))
                 tree_time = timeit.default_timer() + tree_time - time
                 treelist.append(learned_tree)
                 learned_inv.append(
@@ -405,7 +417,8 @@ def find_common_structure(treelist):
 
 def avg_models(models):
     modelmodel = np.mean(np.array([model.model for model in models]), axis=0)
-    return linear_regr_2norm(fit_intercept=FIT_intercept, model=modelmodel)
+    roundedmodel = np.array(list(map(default_rounding, modelmodel)))
+    return linear_regr_2norm(fit_intercept=FIT_intercept, model=roundedmodel)
 
 
 '''
@@ -415,7 +428,8 @@ def avg_models(models):
 
 def median_models(models):
     modelmodel = np.median(np.array([model.model for model in models]), axis=0)
-    return linear_regr_2norm(fit_intercept=FIT_intercept, model=modelmodel)
+    roundedmodel = np.array(list(map(default_rounding, modelmodel)))
+    return linear_regr_2norm(fit_intercept=FIT_intercept, model=roundedmodel)
 
 
 '''

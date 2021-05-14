@@ -43,6 +43,7 @@ class linear_regr_pnorm:
         except cp.error.SolverError:
             import pdb
             pdb.set_trace()
+        pdb.set_trace()
         self.model = [c.value.item(i) for i in range(len(c.value))]
         return
 
