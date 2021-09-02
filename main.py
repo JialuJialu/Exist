@@ -39,7 +39,7 @@ Regressors = [(linear_regr, "scikit_regression")]
 '''
 # whether to collect the data again and update CSV or retriving data from
 # existing CSV and learn the model. CSV files are under directory `csv`.
-UPDATE_CSV = False
+UPDATE_CSV = True
 # whether to test how a known model fits data, v.s. learn a model from data without prior knowledge
 TESTING_KNOWN_MODEL = False
 # whether to plot how the model fits data. Plotting gives us insights into how the
@@ -76,7 +76,7 @@ NUM_RUNS = 500
 # When Bootstrapping is False, we recollect the data multiple times to train multiple models;
 # When Bootstrapping is True, we only collect the data once,
 # and subsample to get `bags` and learn multiple models.
-numBAG = [1,3,5]
+numBAG = [10]
 # Max depth of the model tree
 MAX_DEPTH = 2
 # Minimum number of samples
@@ -186,10 +186,10 @@ progs = {
     # "Fair": (Fair, probinpts2, INIT_GRID2bool1int, "=="),
     # "Mart": (Mart, probinpts1, INIT_GRID0bool3int, "<="),
     # "Gambler0": (Gambler0, probinpts0, INIT_GRID0bool3int, "<="),
-    "GeoAr0": (GeoAr0, probinpts1, INIT_GRID1bool2int, "<="),
+    # "GeoAr0": (GeoAr0, probinpts1, INIT_GRID1bool2int, "<="),
     # "GeoAr1": (GeoAr1, probinpts0, INIT_GRID1bool1int, "<="),
     # "GeoAr2": (GeoAr2, probinpts0, INIT_GRID1bool2int, "<="),
-    "GeoAr3": (GeoAr3, probinpts1, INIT_GRID1bool1int, "<="),
+    # "GeoAr3": (GeoAr3, probinpts1, INIT_GRID1bool1int, "<="),
     # "Bin0": (Bin0, probinpts1, INIT_GRID0bool3int, "<="),
     # "Bin1": (Bin1, probinpts1, INIT_GRID0bool3int, "<="),
     # "Bin2": (Bin2, probinpts1, INIT_GRID0bool3int, "<="),
@@ -199,7 +199,7 @@ progs = {
     # "Seq1": (Seq1, probinpts2, INIT_GRID2bool1int, "<="),
     # "Nest": (Nest, probinpts2, INIT_GRID2bool1int, "<="),
     # "Sum0": (Sum0, probinpts1, INIT_GRID0bool2int, "<="),
-    # "Sum1": (Sum1, probinpts0, INIT_GRID0bool2int, "<="),
+    "Sum1": (Sum1, probinpts0, INIT_GRID0bool2int, "<="),
     # "DepRV": (DepRV, probinpts0, INIT_GRID0bool3int, "<="),
     # "BiasPri": (BiasPri, probinpts1, INIT_GRID2bool0int, "=="),
     # "BiasDir": (BiasDir, probinpts1, INIT_GRID2bool0int, "<="),
