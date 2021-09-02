@@ -1,6 +1,6 @@
 # Exist
 This is a research prototype for the data-driven approach to synthesize invariants 
-for probabilistic programs, as described in more details in TODO. 
+for probabilistic programs, as described in more details in our paper [Data-Driven Invariant Learning for Probabilistic Programs](https://arxiv.org/submit/3785906). 
 
 # Repo structure
 - Directory `model_tree`: it is adapted from code in [this repo](https://github.com/ankonzoid/LearningX/tree/master/advanced_ML/model_tree), which implements a model tree learning algorithm. 
