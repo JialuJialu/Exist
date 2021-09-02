@@ -399,7 +399,7 @@ Program variables: x, y, z
 Guard variable: 0 < x < y
 Constants: None
 Augmented features: x * (y - x)
-Invariant: z + [0 < x and x < y] * x * (y - x)
+wp(Gambler0, z) = z + [0 < x and x < y] * x * (y - x)
 '''
 
 
@@ -924,7 +924,7 @@ Learn the invariant of nested loops
 Program variables: p1, p2, x, flip1, flip2
 Guard variable: flip1, flip2
 Augmented features: p1/(1-p1), p2/(1-p2) 
-Known Invariant: x + [flip1 = 0 and flip2 = 0] * p1/(1-p1) * p2/(1-p2) + [flip1 = 0 and flip2 != 0] * p1 * p1 /(1-p1) * p2/(1-p2)
+wp(Nest,x) = x + [flip1 = 0 and flip2 = 0] * p1/(1-p1) * p2/(1-p2) + [flip1 = 0 and flip2 != 0] * p1 * p1 /(1-p1) * p2/(1-p2)
 '''
 
 
@@ -1358,7 +1358,7 @@ Similar to Unif but no sampling
 Program variables: p, x, count
 Guard variable: x
 Augmented features: None
-Known invariant: count + [x <= 10]*(10-x+1) 
+wp(Detm, count) = count + [x <= 10]*(10-x+1) 
 '''
 
 

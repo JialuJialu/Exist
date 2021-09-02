@@ -1,4 +1,3 @@
-[[EXIST project]]
 
 In this document, we verifies whether our proposed invariant I satisfy 
 `I = [loop guard] · wp(program, I) + [¬loop guard] · post`. 
