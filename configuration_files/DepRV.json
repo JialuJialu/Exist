@@ -1,0 +1,11 @@
+{
+    "Sample_Points": {
+        "Integers": ["n", "x", "y"]
+    },
+    "wp": {
+        "guard": "[n > 0]",
+        "loopbody": "x=x+1[0.5]y=y+1;n=n-1",
+        "post": "x*y",
+        "pre": ["x*y + (n>0)*(1/4*(n*n))", "x*y"]
+    }
+}

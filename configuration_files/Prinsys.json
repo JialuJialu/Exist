@@ -1,0 +1,17 @@
+{
+    "Sample_Points": {
+        "Probs": [
+            "p1",
+            "p2"
+        ],
+        "Integers": [
+            "x"
+        ]
+    },
+    "wp": {
+        "guard": "[x == 0]",
+        "loopbody": "x=0[p1]{x=-1[p2]x=1}",
+        "post": "[x==1] * 1",
+        "pre": ["[x==1] * 1"]
+    }
+}

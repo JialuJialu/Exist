@@ -1,0 +1,21 @@
+{
+    "Sample_Points": {
+        "Probs": [
+            "p1"
+        ],
+        "Booleans": [
+            "flip"
+        ],
+        "Integers": [
+            "z"
+        ]
+    },
+    "wp": {
+        "guard": "[flip == 0]",
+        "loopbody": "flip=1[p1]z=z+1",
+        "pre": ["z", 
+                "[flip == 0]*(1 - p1)", 
+                "z + [flip == 0]*(1 - p1)"],
+        "post": "z"
+    }
+}

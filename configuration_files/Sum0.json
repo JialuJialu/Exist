@@ -1,0 +1,27 @@
+{
+    "Sample_Points": {
+        "Probs": [
+            "p"
+        ],
+        "Integers": [
+            "n",
+            "x"
+        ]
+    },
+    "wp": {
+        "guard": "[n > 0]",
+        "loopbody": "x=x+n[p]skip;n=n-1",
+        "pre": ["x + [n > 0]*(p*n*n/2)"],
+        "post": "x"
+    },
+    "additional features for sub": {
+        "Reals": [
+            "(p*n)"
+        ]
+    },
+    "additional features for exact": {
+        "Reals": [
+            "(p*n)"
+        ]
+    }
+}

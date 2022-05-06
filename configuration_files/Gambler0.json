@@ -1,0 +1,23 @@
+{
+    "Sample_Points": {
+        "Integers": [
+            "z",
+            "x",
+            "y"
+        ]
+    },
+    "wp": {
+        "guard": "[(x > 0) & (y > x)]",
+        "loopbody": "x=x+1[0.5]x=x-1;z=z+1",
+        "post": "z",
+        "pre": [
+            "z",
+            "x * (y-x)"
+        ]
+    },
+    "additional features for sub": {
+        "Integers": [
+            "(y-x)"
+        ]
+    }
+}

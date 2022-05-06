@@ -1,0 +1,18 @@
+{
+    "Sample_Points": {
+        "Probs": [
+            "p"
+        ],
+        "Integers": [
+            "rounds",
+            "b",
+            "c"
+        ]
+    },
+    "wp": {
+        "guard": "[b > 0]",
+        "loopbody": "b=0[p]b=2*b;rounds=rounds+1",
+        "pre": ["rounds", "rounds + [b > 0] * 1"],
+        "post": "rounds"
+    }
+}

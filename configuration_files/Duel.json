@@ -1,0 +1,21 @@
+{
+    "Sample_Points": {
+        "Probs": [
+            "p1",
+            "p2"
+        ],
+        "Booleans": [
+            "c",
+            "t"
+        ]
+    },
+    "wp": {
+        "guard": "[c == 1]",
+        "loopbody": "n=n+1;{c=0[p1]t=0}[t==1]{c=0[p2]t=1}",
+        "post": "t",
+        "pre": ["1 + c*(-p2/(p1 + p2 - p1 * p2))"]
+    },
+    "additional features for exact":{
+        "Reals": ["p1 + p2 - p1 * p2"]
+    }
+}
