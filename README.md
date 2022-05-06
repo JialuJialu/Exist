@@ -1,21 +1,149 @@
-# Exist
-This is a research prototype for the data-driven approach to synthesize invariants 
-for probabilistic programs, as described in more details in our draft [Data-Driven Invariant Learning for Probabilistic Programs](https://arxiv.org/pdf/2106.05421.pdf). 
+# Data-Driven Invariant Learning for Probabilistic Programs
 
-# Repo structure
-- Directory `model_tree`: it is adapted from code in [this repo](https://github.com/ankonzoid/LearningX/tree/master/advanced_ML/model_tree), which implements a model tree learning algorithm. 
-- Directory `src` includes instrumented example programs (`ex_prog.py`), the class for managing the data from program traces (`data_utils.py`), and manual verifications of candidate invariants we synthesize. 
-- `main.py` loads example programs from `src/ex_prog.py`, gets their traces (stored directory `csv`), synthesizes candidates invariants (stored in `invariants` as text, in `pickle` as trees, in `output` as images). 
-- `rounding.py` is for rounding the candidates invariants we get. 
+This repository hosts the artifact of our CAV 2022 paper [Data-Driven Invariant Learning for Probabilistic Programs](https://baojia.lu/assets/preprints/EXIST.pdf).
+You can also read our documentation at [this google doc](https://docs.google.com/document/d/1raf8veEzBY87vRD16tjRLFlni13tpx-5y2bI1YQwdDM/edit#heading=h.jh6zo3yov47z). 
 
-# What to install
-* numpy
-* sklearn
-* cvxpy
+## What does Exist do?
+Exist is a method for learning invariants for probabilistic programs (Section 3 of the paper). Exist executes the program multiple times on a set of input states, and then uses machine learning algorithms to learn models encoding possible invariants. A CEGIS-like loop is used to iteratively expand the set of input states given counterexamples to the invariant conditions. 
+Here we present a concrete implementation of Exist tailored for handling two problems: learning exact invariants (Section 4), and learning sub-invariants (Section 5). Our method for exact invariants learns a model tree [1], a generalization of binary decision trees to regression. The constraints for sub-invariants are more difficult to encode as a regression problem, and our method learns a neural model tree [2] with a custom loss function. While the models differ, both algorithms leverage off-the-shelf learning algorithms. 
 
-# How to Run
-* To run: uncomment example programs you want to run in `main.py` and run `python3 main.py` in the command line. 
-* To add example programs: 
-add programs to `src/ex_prog.py` with code instrumentation following guideline there; 
-then add them to the dictionary `progs` in `main.py`
+
+## Structure of this Artifact
+The folder contains the following files
+- Readme.md
+- exist_conda.yml
+- Exist
+    - main.py 
+    - cegis.py
+    - feature_generation.py 
+    - learners
+        - abstract_learner.py
+        - NN.py
+        - Tree.py
+        - Utils.py
+    - sampler.py 
+    - verifier.py 
+    - ex_prog.py
+    - ex_prog_sub.py
+    - program_list.txt 
+    - configuration_files (The folder is currently empty but the following file will be generated. )
+        - {BenchmarkName}.json
+    - generated_data (The folder is currently empty but the following file will be generated. )
+        - {BenchmarkName}_expected_post.json
+        - {BenchmarkName}_G_init.json
+        - {BenchmarkName}_G_next.json
+    - results (The folder is currently empty but the following file will be generated. )
+        - {BenchmarkName1}-{BenchmarkName2}-exact.csv
+        - {BenchmarkName1}-{BenchmarkName2}-exact.csv
+
+Our implementation roughly follows the pseudocode presented in Fig. 2 of our paper 
+submission. We document the correspondence between our python code and
+individual lines of the pseudocode in the following places: 
+- `cegis.py` (above and inline function `cegis_one_prog`); 
+- `sampler.py` (above function `sampler_by_type` and `sample`);
+- `learners/NN.py` (above function `makeModelTree`) and `learners/Tree.py` (above function `extract_invariant`) 
+
+## Getting Started
+We present two methods to set up the environment to run our code. The first method is through Anaconda and the second is through Docker. Currently, our Docker image only supports machines with Intel chips. Please choose the one that works easier for you. 
+
+Our tool uses Wolfram Engine, so no matter which method you choose, the first step is to set up the wolfram engine. 
+1. Create a Wolfram login by visiting: https://account.wolfram.com/login/create
+
+Then, if you want to install dependencies through anaconda:
+1.  Set up and activate Wolfram Engine on your machine as instructed in this link 
+2. Make sure that you have anaconda installed. 
+3. At the root directory of artifact, create a conda environment from the exist.yml file by running `conda env create -f exist_conda.yml`
+4. Activate the new environment by running  `conda activate exist`
+5. Verify that the new environment was installed correctly by running  `conda env list` and checking that `exist` is in the list
+
+Or, if you want set up the environment through Docker: 
+
+1. Make sure that you have docker engine installed. 
+2. Open terminal and enter the directory `Exist` through  `cd Exist`
+3. Pull the docker image using the command:  `docker pull nitesh2008/inv2022:login`
+(Note: “nitesh2008/inv2022:login” is publicly released image on docker hub)
+4. Execute the following command to run a docker container with the pulled image: 
+`docker run --name exist_artifact -it -v ${PWD}:/project nitesh2008/inv2022:login /bin/bash`. 
+This command would create a container named `exist_artifact` and mount the base directory `Exist` to the directory `project` in the container. 
+5. Type command “wolframscript” on terminal. It will ask for your Wolfram login credentials. Type in your Wolfram login credentials. 
+6. Enter the the directory `project`  by typing `cd project` 
+
+
+## Evaluation Instructions
+
+### Instruction: 
+To learn exact invariants: 
+0. Put benchmarks to run in `program_list.txt`. We put all the benchmarks there so you 
+can skip this step. If the tool exits unexpectedly and you want to restart the 
+experiement without repeating benchmarks you already finished, you can remove those 
+benchmarks from program_list.txt.
+1. Run `python main.py`
+2. After the script finishes, check the generated invariants and the running time 
+in the most recent `*-exact.csv` file under the folder `results`. 
+
+To learn sub-invariants: 
+0. Put benchmarks to run in `program_list.txt`. If you removed benchmarks from 
+`program_list.txt` in the previous step, now you can copy the list of all benchmarks 
+from `program_list_all.txt` and paste them in `program_list.txt`. 
+1. Run `python main.py -sub yes`
+2. After the script finishes, check the generated invariants and the running time 
+in the most recent `*-sub.csv` file under the folder `results`. 
+
+### Remarks:
+#### Other arguments to the command
+Besides running `python main.py -sub yes`, you can also run the program with the following
+arguments
+- `python main.py -cached yes` would use saved data in `\generated_data` instead of sample new data for training new models. 
+- `python main.py -nruns 1000` would run the benchmark from each initial state for 1000 time instead of the default 500 times. You can also input other integers in place of 1000. 
+- `python main.py -nstates 1000` would sample 1000 (instead of 500 by difault) initial states for each benchmark. You can also input other integers in place of 1000. 
+
+
+#### Wolfram alpha disconnected
+We use Python’s wolframclient module to create a connected session with the wolfram engine kernel, thereafter the session interacts with the Wolfram Engine executable. Sometimes wolframclient fails to create a session even after multiple tries or the session gets disconnected in the middle of an execution, and you may get errors that look like the following. (Check the google doc) 
+The best way we found to address this problem is to reboot the computer. Although rebooting is a bit annoying, this problem does not happen frequently. 
+
+#### Occasional verifier error
+The wolfram engine can get stuck when optimizing on complex objective functions and constraints. Because our data generation and learning process are not deterministic, occasionally Exist generates candidate invariants that are too complicated for the wolfram engine to verify. If you observe the terminal stops outputting any new text for a long time (like a minute) after it prints “Trying to verify [candidate invariant]” and some other texts, it is mostly likely that that wolfram engine has gotten stuck. In any such case, quit the current execution and restart a fresh execution from that benchmark. 
+Reproduce Evaluation Results
  
+
+
+## How to extend Exist
+
+### Add benchmarks
+- Encode the program in `ex_prog.py` and `ex_prog_sub.py` following the structure laid out in 
+`template_for_new_benchmarks`. 
+- Add configurations of the program to `{progname}.json` following `template.json`. 
+  - The field `Sample_Points` should include all program variables in `progname`. 
+			 Some of its subfields (`Probs`, `Integers`, `Booleans`, `Reals`) may be omitted 
+if there are no program variables of that type. 
+  - The field `wp` and all its subfields are required. 
+  - Optional: provide user-supplied features `additional features for sub` and 
+		`additional features for sub` 
+
+**Our code follows modular design, so you can implement alternative sampler, learner,
+verifier and cegis procedure easily.**
+
+#### Change the sampler
+- Make sure that you implement `sample` and `sample_counterex` to have the same type as 
+ours in `sample.py`; or, implement a sampler in any way you like, and update the usage of sampler in
+`cegis.py` and the processing of sampled data in `/learners/utils.py`.
+
+#### Add learners
+- Add a python class `New_learner` that inherits the `Learner` class in `learners/abstract_learner.py`. 
+- Define a function `prepare_new_learner` in `main.py` to instantiate instances of `New_learner`. 
+- Specify when `prepare_learners` should be `prepare_new_learners` in `main.py`. 
+
+#### Change the verifier 
+- Make sure that you implement a class `Verifier` with functions `__init__` and `compute_conditions` having the same type as ours in `verifier.py`. 
+; or, implement a verifier in any way you like, and update the usage of verifier in
+the function `verify_cand` in `cegis.py`.
+
+
+## References
+
+Quinlan, J.R.: Learning with continuous classes. In: Australian Joint Conference on Artificial Intelligence (AI), Hobart, Tasmania, vol. 92, pp. 343– 348 (1992)
+
+Yang, Y., Morillo, I.G., Hospedales, T.M.: Deep neural decision trees. CoRR abs/1806.06988 (2018), URL http://arxiv.org/abs/1806.06988
+
+
