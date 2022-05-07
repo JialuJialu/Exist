@@ -128,8 +128,7 @@ class Verifier:
             except ZeroDivisionError or OverflowError:
                 continue
         res = [cex for cex in output_list if cex not in not_valid]
-        print("          {} of those counterexamples are indeed\
-            counterexamples\:".format(len(res)))
+        print("          {} of those counterexamples are indeed counterexamples\:".format(len(res)))
         for cex in res:
             print("          {}".format(cex))
         return res

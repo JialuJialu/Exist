@@ -104,7 +104,6 @@ def cegis_one_prog(
     learning_time = 0
     verifying_time = 0
     learned_inv_dict = {}
-    loop_count = 1
     # The following corresponds to the `while not timed out:` loop in Fig. 2
     while learning_time + verifying_time <= 600:
         # The following block roughly corresponds to `models ← learnInv(feat, data)
@@ -141,7 +140,6 @@ def cegis_one_prog(
             # `states ← states ∪ cex
             #  states ← states ∪ sampleStates(feat, nstates)
             #  data ← data ∪ sampleTraces(prog, pexp, feat, nruns, states)`
-            loop_count += 1
             add_data = sample_counterex(
                 progname,
                 exact,
@@ -150,7 +148,7 @@ def cegis_one_prog(
                 features,
                 task,
                 counter_ex,
-                NUM_runs * loop_count,
+                NUM_runs,
             )
             more_sample = sample(
                 progname,
@@ -160,7 +158,7 @@ def cegis_one_prog(
                 var_types,
                 features,
                 task,
-                NUM_runs * loop_count,
+                NUM_runs,
                 int(NUM_init / 10),
                 True,
                 mode="a",
@@ -297,7 +295,8 @@ def combine_data(exact, features, data, add_data, more_sample):
         exist_add_data = add_data[0].shape[0] > 0
         exist_more_sample = more_sample[0].shape[0] > 0
         for feature in list(data[0].columns):
-            if feature in features or feature == "1":
+            # 2.72 is a rounded version of the natural logarithm e
+            if feature in features or feature == "1" or feature == "2.72":
                 if feature not in list(add_data[0].columns) and exist_add_data:
                     add_data[0][feature] = add_data[0].eval(feature, engine="python")
                 if feature not in list(more_sample[0].columns) and exist_more_sample:
@@ -305,7 +304,8 @@ def combine_data(exact, features, data, add_data, more_sample):
                         feature, engine="python"
                     )
         for feature in list(data[1].columns):
-            if feature in features or feature == "1":
+            # 2.72 is a rounded version of the natural logarithm e
+            if feature in features or feature == "1" or feature == "2.72":
                 if feature not in list(add_data[1].columns) and exist_add_data:
                     add_data[1][feature] = add_data[1].eval(feature, engine="python")
                 if feature not in list(more_sample[1].columns) and exist_more_sample:

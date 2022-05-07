@@ -1,7 +1,6 @@
 # Data-Driven Invariant Learning for Probabilistic Programs
 
 This repository hosts the artifact of our CAV 2022 paper [Data-Driven Invariant Learning for Probabilistic Programs](https://baojia.lu/assets/preprints/EXIST.pdf).
-You can also read our documentation at [this google doc](https://docs.google.com/document/d/1raf8veEzBY87vRD16tjRLFlni13tpx-5y2bI1YQwdDM/edit#heading=h.jh6zo3yov47z). 
 
 ## What does Exist do?
 Exist is a method for learning invariants for probabilistic programs (Section 3 of the paper). Exist executes the program multiple times on a set of input states, and then uses machine learning algorithms to learn models encoding possible invariants. A CEGIS-like loop is used to iteratively expand the set of input states given counterexamples to the invariant conditions. 
@@ -35,6 +34,8 @@ The folder contains the following files
     - results (The folder is currently empty but the following file will be generated. )
         - {BenchmarkName1}-{BenchmarkName2}-exact.csv
         - {BenchmarkName1}-{BenchmarkName2}-exact.csv
+				- Dockerfile
+				- requirements.txt
 
 Our implementation roughly follows the pseudocode presented in Fig. 2 of our paper 
 submission. We document the correspondence between our python code and
@@ -44,21 +45,23 @@ individual lines of the pseudocode in the following places:
 - `learners/NN.py` (above function `makeModelTree`) and `learners/Tree.py` (above function `extract_invariant`) 
 
 ## Getting Started
-We present two methods to set up the environment to run our code. The first method is through Anaconda and the second is through Docker. Currently, our Docker image only supports machines with Intel chips. Please choose the one that works easier for you. 
+We present three methods to set up the environment to run our code. The first method is through Anaconda, and the second and the third are both through Docker. The second method pulls a publicly released Docker image that takes about 7.2 GB space, while the third uses a Dockerfile to build a docker image and would take less space. 
+Currently, our Docker images only support machines with Intel chips. Please choose the one that works easier for you. 
 
 Our tool uses Wolfram Engine, so no matter which method you choose, the first step is to set up the wolfram engine. 
-1. Create a Wolfram login by visiting: https://account.wolfram.com/login/create
+0. Create a Wolfram login by visiting: https://account.wolfram.com/login/create
 
-Then, if you want to install dependencies through anaconda:
-1.  Set up and activate Wolfram Engine on your machine as instructed in this link 
+### First method: Install dependencies through Anaconda
+1.  Set up and activate Wolfram Engine on your machine as instructed in this [link](https://support.wolfram.com/45743). 
 2. Make sure that you have anaconda installed. 
 3. At the root directory of artifact, create a conda environment from the exist.yml file by running `conda env create -f exist_conda.yml`
 4. Activate the new environment by running  `conda activate exist`
 5. Verify that the new environment was installed correctly by running  `conda env list` and checking that `exist` is in the list
 
-Or, if you want set up the environment through Docker: 
+### Second Method: Pull publicly released Docker Image 
 
-1. Make sure that you have docker engine installed. 
+1. Make sure that you have Docker Engine and Docker Desktop installed.
+Launch the Docker Desktop to activate the docker daemon. 
 2. Open terminal and enter the directory `Exist` through  `cd Exist`
 3. Pull the docker image using the command:  `docker pull nitesh2008/inv2022:login`
 (Note: “nitesh2008/inv2022:login” is publicly released image on docker hub)
@@ -68,15 +71,22 @@ This command would create a container named `exist_artifact` and mount the base 
 5. Type command “wolframscript” on terminal. It will ask for your Wolfram login credentials. Type in your Wolfram login credentials. 
 6. Enter the the directory `project`  by typing `cd project` 
 
+### Third Method: Build Docker Image through dockerfile
+1. Download the Wolfram Engine suitable to your operating system from [here](https://www.wolfram.com/engine/). Move the downloaded installer file inside the directory `Exist`. 
+2. Open terminal in the directory `Exist` and type command `docker build -t inv2022:01`. This will build an image `inv2022:01` locally with all dependencies required to execute the code. 
+3. Type `. local_env/bin/activate` to activate the environment.
+4. Execute the following command to run a docker container with the build image: `docker run --name pyinv -it -v ${PWD}:/project inv2022:01`
+5. Type `cd project/` and execute the wolfram engine installer, during installation follow the instructions carefully.
+6. Finally, login to wolframscript using the login credentials you registered in step 0. 
 
 ## Evaluation Instructions
 
 ### Instruction: 
 To learn exact invariants: 
-0. Put benchmarks to run in `program_list.txt`. We put all the benchmarks there so you 
-can skip this step. If the tool exits unexpectedly and you want to restart the 
-experiement without repeating benchmarks you already finished, you can remove those 
-benchmarks from program_list.txt.
+0. Put benchmarks to run in `program_list.txt`. We put all the benchmarks there
+			so you can skip this step. If the tool exits unexpectedly and you want to
+			restart the experiment without repeating benchmarks you have already
+			finished, you can remove those benchmarks from `program_list.txt`.
 1. Run `python main.py`
 2. After the script finishes, check the generated invariants and the running time 
 in the most recent `*-exact.csv` file under the folder `results`. 
@@ -95,16 +105,37 @@ Besides running `python main.py -sub yes`, you can also run the program with the
 arguments
 - `python main.py -cached yes` would use saved data in `\generated_data` instead of sample new data for training new models. 
 - `python main.py -nruns 1000` would run the benchmark from each initial state for 1000 time instead of the default 500 times. You can also input other integers in place of 1000. 
-- `python main.py -nstates 1000` would sample 1000 (instead of 500 by difault) initial states for each benchmark. You can also input other integers in place of 1000. 
+- `python main.py -nstates 1000` would sample 1000 (instead of 500 by default) initial states for each benchmark. You can also input other integers in place of 1000. 
+
+#### Comparison to results in our paper
+- There was a mistake with Benchmark Bin1 in our paper submission. 
+We showed results for Bin1 with post `n`, which is not an interesting task 
+(though the results we generated for Table 1 and Table 2 are correct), 
+and we meant to generate (sub)invariants with respect to post `x`. 
+The exact invariant of Bin1 with respect to the post `x` is `x + [n < M]·
+(−p · n + p · M)`.
+- For exact invariants, the learned invariants recorded in the `*-exact.csv` file 
+should be the same as the learned invariants in Table 1 of the paper. Due to 
+the probabilistic nature of our algorithm, the running time may differ a bit, 
+and `Exist` may fail to find invariants for some benchmarks that we reported 
+successful. If you are curious, you can try rerun failed invariants  with 
+`python main.py -nstates 1000 -nruns 1000` to see if more data helps. 
+- Subinvariants of a given task are not unique, so the subinvariants recorded
+in the `*-sub.csv` file may be different from the learned subinvariants in Table
+2 of the paper. When they differ, you can check whether the learned 
+subinvariant is bigger than the given preexpectation and smaller than 
+the exact invariant we generated above. An expression is a valid subinvariant 
+if the answers to both questions are yes. While the returned invariants are 
+''verified'' by the verifier, they may still be wrong because limitations of 
+Wolfram Alpha.
 
 
 #### Wolfram alpha disconnected
-We use Python’s wolframclient module to create a connected session with the wolfram engine kernel, thereafter the session interacts with the Wolfram Engine executable. Sometimes wolframclient fails to create a session even after multiple tries or the session gets disconnected in the middle of an execution, and you may get errors that look like the following. (Check the google doc) 
+We use Python’s wolframclient module to create a connected session with the wolfram engine kernel, thereafter the session interacts with the Wolfram Engine executable. Sometimes wolframclient fails to create a session even after multiple tries or the session gets disconnected in the middle of an execution, and you may get errors that look like the following. (Check [this google doc](https://docs.google.com/document/d/1raf8veEzBY87vRD16tjRLFlni13tpx-5y2bI1YQwdDM/edit#heading=h.jh6zo3yov47z). ) 
 The best way we found to address this problem is to reboot the computer. Although rebooting is a bit annoying, this problem does not happen frequently. 
 
 #### Occasional verifier error
 The wolfram engine can get stuck when optimizing on complex objective functions and constraints. Because our data generation and learning process are not deterministic, occasionally Exist generates candidate invariants that are too complicated for the wolfram engine to verify. If you observe the terminal stops outputting any new text for a long time (like a minute) after it prints “Trying to verify [candidate invariant]” and some other texts, it is mostly likely that that wolfram engine has gotten stuck. In any such case, quit the current execution and restart a fresh execution from that benchmark. 
-Reproduce Evaluation Results
  
 
 

@@ -248,6 +248,7 @@ results = {}
 for progname in prognames:
     config = get_config(progname)
     post = config["wp"]["post"]
+    guard = config["wp"]["guard"]
     pre_lst = config["wp"]["pre"]
     nsubtasks = 1 if exact else len(pre_lst)
     for idx in range(nsubtasks): # iterate through each preexpectation in the list
@@ -270,15 +271,17 @@ for progname in prognames:
             assumed_shape,
         )
         total = time.time() - start_time
+        complete_inv = f"{post} + {guard} * {inv}"
         if exact: 
-            print("For {}: we get {}\n".format(progname, inv))
-            results[progname] = [inv, post,st,lt,vt,total]
+            print("For {}: we get {}\n".format(progname, complete_inv))
+            results[progname] = [complete_inv, post,st,lt,vt,total]
         else: 
-            print("For {} with preexpetation {}: we get {}\n".format(progname, pre_lst[idx],inv))
-            results["{}_{}".format(progname, str(idx))] = [inv, pre, post,st,lt,vt,total]
+            print("For {} with preexpetation {}: we get {}\n".format\
+                (progname, pre_lst[idx],complete_inv))
+            results["{}_{}".format(progname, str(idx))] = [complete_inv, pre, post,st,lt,vt,total]
         # we save eagerly so even if the program crashes at a benchmark
         # we have previous results all saved
         df = pd.DataFrame.from_dict(results, orient="index", columns=header)
-        df.to_csv(os.path.join(PATH, "results", "{}-{}-{}.csv".format\
-            (prognames[0], progname, "exact" if exact else "sub")))
+        df.to_csv(os.path.join(PATH, "results", "{}-{}.csv".format\
+            (prognames[0], "exact" if exact else "sub")))
 session.terminate()

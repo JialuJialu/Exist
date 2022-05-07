@@ -11,7 +11,13 @@
         "post": "x",
         "pre": ["x + (z != 0)*(y*(1-p)/p)", "x"]
     },
-    "additional features": {
+    "additional features for sub": {
+        "Probs":["y*(1-p)/p", "(1-p)/(p*p)"], 
+        "Integers": [], 
+        "Booleans": [], 
+        "Reals": [] 
+    }, 
+    "additional features for exact": {
         "Probs":["y*(1-p)/p", "(1-p)/(p*p)"], 
         "Integers": [], 
         "Booleans": [], 

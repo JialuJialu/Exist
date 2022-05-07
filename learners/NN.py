@@ -244,10 +244,8 @@ class NNProduct(tf.Module):
 
 
 """
-'''
 This function roughly corresponds to [extractInv] described in the Fig. 2 of 
 the paper. It returns a string representation of [model_tree_model] 
-''' 
 Given:
     [model_tree_model] has two sets of parameters: [leaf_score] that encodes the 
     linear models on leaves, and [cut_points_list] that specifies the threshold to 
@@ -298,7 +296,10 @@ def makeModelTree(model_tree_model, splittables, fit_logspace, fit_intercept, di
         else:
             return round(num, digits)
 
-    weights = model_tree_model.leaf_score.numpy()
+    try:
+        weights = model_tree_model.leaf_score.numpy()
+    except AttributeError:
+        pdb.set_trace()
     features = model_tree_model.features
     m, n = weights.shape
     assert n == len(features)

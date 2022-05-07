@@ -1,3 +1,4 @@
+GeoAr0
 Geo0
 Geo1
 Geo2
@@ -7,7 +8,6 @@ BiasDir
 Prinsys
 RevBin
 Detm
-GeoAr0
 Bin0
 Bin1
 Bin2

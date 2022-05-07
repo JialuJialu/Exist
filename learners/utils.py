@@ -10,7 +10,9 @@ def load_expected_post(df, features):
     header = list(df.columns)
     for feature in features:
         # for load_next_iter, this step is handled by combine_data in cegis
-        if feature == "1" or feature not in list(df.columns):
+        # 2.72 comes from the natural logarithm e, the columns 1 and 2.72 are 
+        # are added to do linear regression with intercept
+        if feature == "1" or feature == "2.72" or feature not in list(df.columns):
             df[feature] = df.eval(feature, engine="python")
     X = np.array(df[features], dtype=np.float32)
     y = np.array(df['post-init'], dtype=np.float32) 
