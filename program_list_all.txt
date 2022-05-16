@@ -7,12 +7,12 @@ BiasDir
 Prinsys
 RevBin
 Detm
-GeoAr0
 Bin0
 Bin1
 Bin2
 Sum0
 Gambler0
+GeoAr0
 DepRV
 LinExp
 Duel

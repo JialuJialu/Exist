@@ -5,7 +5,7 @@ from learners.utils import load_expected_post, log_no_nan, exp_no_nan, exp_int_n
 from copy import deepcopy
 import pdb
 from sklearn.metrics import mean_squared_error
-from sklearn.linear_model import LinearRegression, Lasso
+from sklearn.linear_model import LinearRegression
 import numpy as np
 import warnings
 warnings.filterwarnings(action="ignore", module="scipy",
@@ -73,6 +73,13 @@ class linear_model:
     
     def combine_loss(self, left_loss, right_loss, len_left, len_right):
         return (left_loss * len_left + right_loss * len_right)/(len_left + len_right)
+    
+    def adjustedR2(self, x,y ):
+        r2 = self.model.score(x,y)
+        n = x.shape[0]
+        p = x.shape[1]
+        adjusted_r2 = 1-(1-r2)*(n-1)/(n-p-1)
+        return adjusted_r2
 
     def to_string(self, features, logspace, d):
         coefs = self.model.coef_

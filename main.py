@@ -259,29 +259,44 @@ for progname in prognames:
         else: 
             print("     Benchmark name: {}; Post-exp: {}; Pre-exp: {}".format(progname, post, pre))
         start_time = time.time()
-        inv, st, lt, vt = cegis_one_prog(
-            progname,
-            config_idx,
-            prepare_learners,
-            NUM_runs,
-            NUM_init_states,
-            exact,
-            sample_new_data,
-            session,
-            assumed_shape,
-        )
-        total = time.time() - start_time
-        complete_inv = f"{post} + {guard} * {inv}"
-        if exact: 
-            print("For {}: we get {}\n".format(progname, complete_inv))
-            results[progname] = [complete_inv, post,st,lt,vt,total]
-        else: 
-            print("For {} with preexpetation {}: we get {}\n".format\
-                (progname, pre_lst[idx],complete_inv))
-            results["{}_{}".format(progname, str(idx))] = [complete_inv, pre, post,st,lt,vt,total]
-        # we save eagerly so even if the program crashes at a benchmark
-        # we have previous results all saved
-        df = pd.DataFrame.from_dict(results, orient="index", columns=header)
-        df.to_csv(os.path.join(PATH, "results", "{}-{}.csv".format\
-            (prognames[0], "exact" if exact else "sub")))
+        try: 
+            inv, st, lt, vt = cegis_one_prog(
+                progname,
+                config_idx,
+                prepare_learners,
+                NUM_runs,
+                NUM_init_states,
+                exact,
+                sample_new_data,
+                session,
+                assumed_shape,
+            )
+            total = time.time() - start_time
+            complete_inv = f"{post} + {guard} * {inv}"
+            if exact: 
+                print("For {}: we get {}\n".format(progname, complete_inv))
+                results[progname] = [complete_inv, post,st,lt,vt,total]
+            else: 
+                print("For {} with preexpetation {}: we get {}\n".format\
+                    (progname, pre_lst[idx],complete_inv))
+                results["{}_{}".format(progname, str(idx))] = [complete_inv, pre, post,st,lt,vt,total]
+            # we save eagerly so even if the program crashes at a benchmark
+            # we have previous results all saved
+            df = pd.DataFrame.from_dict(results, orient="index", columns=header)
+            df.to_csv(os.path.join(PATH, "results", "{}-{}.csv".format\
+                (prognames[0], "exact" if exact else "sub")))
+        except KeyboardInterrupt:
+            print("Caught a KeyboardInterrupt")
+            sys.exit(0)
+        except: 
+            if exact: 
+                print("For {}: we get an unexpected exception".format(progname))
+                results[progname] = ["error", post, "error","error","error", "error"]
+            else: 
+                print("For {} with preexpetation {}: we get an unexpected\
+                      exception".format(progname, pre_lst[idx]))
+                results["{}_{}".format(progname, str(idx))] = ["error", pre, "error","error","error", "error"]
+            df = pd.DataFrame.from_dict(results, orient="index", columns=header)
+            df.to_csv(os.path.join(PATH, "results", "{}-{}.csv".format\
+                (prognames[0], "exact" if exact else "sub")))
 session.terminate()

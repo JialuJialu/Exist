@@ -1,4 +1,3 @@
-GeoAr0
 Geo0
 Geo1
 Geo2
@@ -13,6 +12,7 @@ Bin1
 Bin2
 Sum0
 Gambler0
+GeoAr0
 DepRV
 LinExp
 Duel
