@@ -1,6 +1,7 @@
 # Data-Driven Invariant Learning for Probabilistic Programs
 
 This repository hosts the artifact of our CAV 2022 paper [Data-Driven Invariant Learning for Probabilistic Programs](https://baojia.lu/assets/preprints/EXIST.pdf).
+The codebase is publicly available at https://github.com/JialuJialu/Exist/. 
 
 ## What does Exist do?
 Exist is a method for learning invariants for probabilistic programs (Section 3 of the paper). Exist executes the program multiple times on a set of input states, and then uses machine learning algorithms to learn models encoding possible invariants. A CEGIS-like loop is used to iteratively expand the set of input states given counterexamples to the invariant conditions. 
@@ -73,7 +74,7 @@ This command would create a container named `exist_artifact` and mount the base 
 
 ### Third Method: Build Docker Image through dockerfile
 1. Download the Wolfram Engine suitable to your operating system from [here](https://www.wolfram.com/engine/). Move the downloaded installer file inside the directory `Exist`. 
-2. Open terminal in the directory `Exist` and type command `docker build -t inv2022:01`. This will build an image `inv2022:01` locally with all dependencies required to execute the code. 
+2. Open terminal in the directory `Exist` and type command `docker build -t inv2022:01 .`. This will build an image `inv2022:01` locally with all dependencies required to execute the code. 
 3. Type `. local_env/bin/activate` to activate the environment.
 4. Execute the following command to run a docker container with the build image: `docker run --name pyinv -it -v ${PWD}:/project inv2022:01`
 5. Type `cd project/` and execute the wolfram engine installer, during installation follow the instructions carefully.

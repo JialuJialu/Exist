@@ -125,7 +125,9 @@ class Verifier:
                 rhs_val = eval(rhs, {"__builtins__": None}, cex)
                 if abs(lhs_val - rhs_val) < 1e-4:
                     not_valid.append(cex)
-            except ZeroDivisionError or OverflowError:
+            except (OverflowError, ZeroDivisionError) as e:
+                import pdb
+                pdb.set_trace()
                 continue
         res = [cex for cex in output_list if cex not in not_valid]
         print("          {} of those counterexamples are indeed counterexamples\:".format(len(res)))
@@ -186,8 +188,10 @@ class Verifier:
                     rhs_val = eval(rhs, {"__builtins__": None}, cex)
                     if lhs_val - rhs_val < 1e-4:
                         not_valid.append(cex)
-            except ZeroDivisionError:
+            except (OverflowError, ZeroDivisionError) as e:
+                import pdb
                 pdb.set_trace()
+                continue
         res = [cex for cex in output_list if cex not in not_valid]
         print("{} of those counterexamples are indeed counterexamples:".format(len(res)))
         for cex in res:
