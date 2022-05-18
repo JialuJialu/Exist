@@ -82,19 +82,22 @@ This command would create a container named `exist_artifact` and mount the base 
 
 ## Evaluation Instructions
 
-### Instruction: 
+### Test the installed environment:
+Run the command `python main.py` and check if it exits normally. 
+
+### Test the tool on benchmarks:
 To learn exact invariants: 
-0. Put benchmarks to run in `program_list.txt`. We put all the benchmarks there
-			so you can skip this step. If the tool exits unexpectedly and you want to
-			restart the experiment without repeating benchmarks you have already
-			finished, you can remove those benchmarks from `program_list.txt`.
+0. Copy the list of benchmarks from `program_list_all.txt` and paste them in
+			`program_list.txt`.  If the tool exits unexpectedly and you want to restart
+			the experiment without repeating benchmarks you have already finished, you
+			can remove those benchmarks from `program_list.txt`.
 1. Run `python main.py`
 2. After the script finishes, check the generated invariants and the running time 
 in the most recent `*-exact.csv` file under the folder `results`. 
 
 To learn sub-invariants: 
 0. Put benchmarks to run in `program_list.txt`. If you removed benchmarks from 
-`program_list.txt` in the previous step, now you can copy the list of all benchmarks 
+`program_list.txt` in the previous step, now you can copy the list of benchmarks 
 from `program_list_all.txt` and paste them in `program_list.txt`. 
 1. Run `python main.py -sub yes`
 2. After the script finishes, check the generated invariants and the running time 
