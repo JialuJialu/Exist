@@ -8,7 +8,6 @@ import re
 import numpy as np
 from wolframclient.evaluation import SecuredAuthenticationKey
 
-
 class MathConsumer(WXFConsumer):
     """Implements a consumer that consumes output returned by wolfram's 
     NMaximize module, and transforms it to python equivalent"""
@@ -179,13 +178,16 @@ class Verifier:
         # double check the counterexamples
         for cex in output_list:
             try:
+                violation = False
                 for (lhs, rhs) in [(GIplusPost, wpbodyI), (pre, whole_inv)]:
                     lhs = lhs.replace("[", "(").replace("]", ")").replace("^", "**")
                     rhs = rhs.replace("[", "(").replace("]", ")").replace("^", "**")
                     lhs_val = eval(lhs, {"__builtins__": None}, cex)
                     rhs_val = eval(rhs, {"__builtins__": None}, cex)
-                    if lhs_val - rhs_val < 1e-4:
-                        not_valid.append(cex)
+                    if lhs_val > rhs_val + 1e-4:
+                        violation = True
+                if not violation:
+                    not_valid.append(cex)
             except (OverflowError, ZeroDivisionError) as e:
                 continue
         res = [cex for cex in output_list if cex not in not_valid]

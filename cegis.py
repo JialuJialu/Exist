@@ -2,10 +2,10 @@ import os
 import sys
 import json
 import pdb
-from sympy.utilities.iterables import flatten
 import pandas as pd
 import numpy as np
 import time
+import threading
 from feature_generation import generate_features_linear, generate_features_log
 from sampler import sample, sample_counterex
 
@@ -105,7 +105,8 @@ def cegis_one_prog(
     verifying_time = 0
     learned_inv_dict = {}
     # The following corresponds to the `while not timed out:` loop in Fig. 2
-    while learning_time + verifying_time <= 600:
+    timeout = 300
+    while learning_time + verifying_time <= timeout:
         # The following block roughly corresponds to `models ← learnInv(feat, data)
         #                                       candidates ← extractInv(models)`
         # [learn_cand_dic] iterates through [learner] in [learners], and 
@@ -123,11 +124,20 @@ def cegis_one_prog(
             s = "We cannot find a model that fit well; try supply more features"
             break
         # The for-loop [for inv in candidates: verified, cex ← verifyInv(inv, prog)] 
-        # is baked in [verify_cand] here. 
-        verified, inv_info = verify_cand(
-            cand_dic, exact, task, session, var_types, assumed_shape
-        )
+        # is baked in the function [verify_cand]. 
+        # Since verifier can gets stuck sometimes, we use multithreadin here to 
+        # interrupt the process [verify_cand] if it is taking too long
+        results = [None, None]
+        t = threading.Thread(target=verify_cand, args=(cand_dic, exact, task, session, var_types, assumed_shape, results))
+        t.start()
+        t.join(timeout - learning_time - verifying_time)
         verifying_time += time.time() - after_learning
+        if t.is_alive():
+            learned_inv_dict.update(cand_dic)
+            break
+        else:
+            verified, inv_info = results[0], results[1]
+        print(verified, inv_info)
         # If any candidate in cand_dic is verified, then returns it
         if verified:
             return inv_info[0], sampling_time, learning_time, verifying_time
@@ -218,7 +228,7 @@ Returns:
 """
 
 
-def verify_cand(cand_dic, exact: bool, task, session, var_types, assumed_shape):
+def verify_cand(cand_dic, exact: bool, task, session, var_types, assumed_shape, results):
     counter_examples = []
     sorted_keys = sorted(cand_dic, key=cand_dic.get, reverse=False)[:5]
     for inv in sorted_keys:
@@ -226,10 +236,13 @@ def verify_cand(cand_dic, exact: bool, task, session, var_types, assumed_shape):
         inv_verifier = Verifier(inv, exact, assumed_shape, task, session)
         res = inv_verifier.compute_conditions(var_types)
         if len(res) == 0:
-            return True, (inv, cand_dic[inv])
+            results[0] = True
+            results[1] = (inv, cand_dic[inv])
+            return
         else:
             counter_examples += res
-    return False, counter_examples
+    results[0] = False
+    results[1] = counter_examples
 
 
 # ---------------------Basic helper functions -----------------------------------

@@ -1,7 +1,6 @@
-# Data-Driven Invariant Learning for Probabilistic Programs
+# Dat-Driven Invariant Learning for Probabilistic Programs
 
 This repository hosts the artifact of our CAV 2022 paper [Data-Driven Invariant Learning for Probabilistic Programs](https://baojia.lu/assets/preprints/EXIST.pdf).
-The codebase is publicly available at https://github.com/JialuJialu/Exist/. 
 
 ## What does Exist do?
 Exist is a method for learning invariants for probabilistic programs (Section 3 of the paper). Exist executes the program multiple times on a set of input states, and then uses machine learning algorithms to learn models encoding possible invariants. A CEGIS-like loop is used to iteratively expand the set of input states given counterexamples to the invariant conditions. 
@@ -9,45 +8,17 @@ Here we present a concrete implementation of Exist tailored for handling two pro
 
 
 ## Structure of this Artifact
-The folder contains the following files
-- Readme.md
-- exist_conda.yml
-- Exist
-    - main.py 
-    - cegis.py
-    - feature_generation.py 
-    - learners
-        - abstract_learner.py
-        - NN.py
-        - Tree.py
-        - Utils.py
-    - sampler.py 
-    - verifier.py 
-    - ex_prog.py
-    - ex_prog_sub.py
-    - program_list.txt 
-    - configuration_files (The folder is currently empty but the following file will be generated. )
-        - {BenchmarkName}.json
-    - generated_data (The folder is currently empty but the following file will be generated. )
-        - {BenchmarkName}_expected_post.json
-        - {BenchmarkName}_G_init.json
-        - {BenchmarkName}_G_next.json
-    - results (The folder is currently empty but the following file will be generated. )
-        - {BenchmarkName1}-{BenchmarkName2}-exact.csv
-        - {BenchmarkName1}-{BenchmarkName2}-exact.csv
-				- Dockerfile
-				- requirements.txt
 
-Our implementation roughly follows the pseudocode presented in Fig. 2 of our paper 
-submission. We document the correspondence between our python code and
+Our implementation roughly follows the pseudocode presented in Fig. 2 of our [paper](https://arxiv.org/abs/2106.05421). 
+We document the correspondence between our python code and
 individual lines of the pseudocode in the following places: 
 - `cegis.py` (above and inline function `cegis_one_prog`); 
 - `sampler.py` (above function `sampler_by_type` and `sample`);
 - `learners/NN.py` (above function `makeModelTree`) and `learners/Tree.py` (above function `extract_invariant`) 
 
 ## Getting Started
-We present three methods to set up the environment to run our code. The first method is through Anaconda, and the second and the third are both through Docker. The second method pulls a publicly released Docker image that takes about 7.2 GB space, while the third uses a Dockerfile to build a docker image and would take less space. 
-Currently, our Docker images only support machines with Intel chips. Please choose the one that works easier for you. 
+We present three methods to set up the environment to run our code. The most recommended method is through Anaconda, but we also provide two options through Docker. The second method pulls a publicly released Docker image that takes about 7.2 GB space, while the third uses a Dockerfile to build a docker image and would take less space. 
+Currently, our Docker images only support machines with Intel chips.
 
 Our tool uses Wolfram Engine, so no matter which method you choose, the first step is to set up the wolfram engine. 
 0. Create a Wolfram login by visiting: https://account.wolfram.com/login/create
@@ -83,20 +54,19 @@ This command would create a container named `exist_artifact` and mount the base 
 ## Evaluation Instructions
 
 ### Test the installed environment:
-Run the command `python main.py` and check if it exits normally. 
+Run the command `python main.py -test` and check if it exits normally. 
 
 ### Test the tool on benchmarks:
 To learn exact invariants: 
-0. Copy the list of benchmarks from `program_list_all.txt` and paste them in
-			`program_list.txt`.  If the tool exits unexpectedly and you want to restart
+0. Run `python main.py`
+1. If the tool exits unexpectedly and you want to restart
 			the experiment without repeating benchmarks you have already finished, you
 			can remove those benchmarks from `program_list.txt`.
-1. Run `python main.py`
 2. After the script finishes, check the generated invariants and the running time 
 in the most recent `*-exact.csv` file under the folder `results`. 
 
 To learn sub-invariants: 
-0. Put benchmarks to run in `program_list.txt`. If you removed benchmarks from 
+0. If you removed benchmarks from 
 `program_list.txt` in the previous step, now you can copy the list of benchmarks 
 from `program_list_all.txt` and paste them in `program_list.txt`. 
 1. Run `python main.py -sub yes`
@@ -112,35 +82,26 @@ arguments
 - `python main.py -nstates 1000` would sample 1000 (instead of 500 by default) initial states for each benchmark. You can also input other integers in place of 1000. 
 
 #### Comparison to results in our paper
-- There was a mistake with Benchmark Bin1 in our paper submission. 
-We showed results for Bin1 with post `n`, which is not an interesting task 
-(though the results we generated for Table 1 and Table 2 are correct), 
-and we meant to generate (sub)invariants with respect to post `x`. 
-The exact invariant of Bin1 with respect to the post `x` is `x + [n < M]·
-(−p · n + p · M)`.
 - For exact invariants, the learned invariants recorded in the `*-exact.csv` file 
-should be the same as the learned invariants in Table 1 of the paper. Due to 
-the probabilistic nature of our algorithm, the running time may differ a bit, 
-and `Exist` may fail to find invariants for some benchmarks that we reported 
-successful. If you are curious, you can try rerun failed invariants  with 
-`python main.py -nstates 1000 -nruns 1000` to see if more data helps. 
+should be the equivalent to (though might not be exactly the same as) the
+learned invariants in Table 1 of the paper. Due to the probabilistic nature of
+our algorithm, the running time differ in different trials, and `Exist` may fail to find
+invariants for some benchmarks that we reported successful. If you are curious,
+you can try rerun failed invariants  with `python main.py -nstates 1000 -nruns
+1000` to see if more data helps. 
 - Subinvariants of a given task are not unique, so the subinvariants recorded
-in the `*-sub.csv` file may be different from the learned subinvariants in Table
-2 of the paper. When they differ, you can check whether the learned 
-subinvariant is bigger than the given preexpectation and smaller than 
-the exact invariant we generated above. An expression is a valid subinvariant 
-if the answers to both questions are yes. While the returned invariants are 
-''verified'' by the verifier, they may still be wrong because limitations of 
-Wolfram Alpha.
+in the `*-sub.csv` file may be different from the learned subinvariants in
+Table 2 of the paper. When they differ, you can check whether the learned
+subinvariant is bigger than the given preexpectation and smaller than the exact
+invariant we generated above. An expression is a valid subinvariant if the
+answers to both questions are yes. While the returned invariants are
+''verified'' by the verifier, they may still be wrong occasionally because
+limitations of Wolfram Alpha.
 
 
 #### Wolfram alpha disconnected
 We use Python’s wolframclient module to create a connected session with the wolfram engine kernel, thereafter the session interacts with the Wolfram Engine executable. Sometimes wolframclient fails to create a session even after multiple tries or the session gets disconnected in the middle of an execution, and you may get errors that look like the following. (Check [this google doc](https://docs.google.com/document/d/1raf8veEzBY87vRD16tjRLFlni13tpx-5y2bI1YQwdDM/edit#heading=h.jh6zo3yov47z). ) 
 The best way we found to address this problem is to reboot the computer. Although rebooting is a bit annoying, this problem does not happen frequently. 
-
-#### Occasional verifier error
-The wolfram engine can get stuck when optimizing on complex objective functions and constraints. Because our data generation and learning process are not deterministic, occasionally Exist generates candidate invariants that are too complicated for the wolfram engine to verify. If you observe the terminal stops outputting any new text for a long time (like a minute) after it prints “Trying to verify [candidate invariant]” and some other texts, it is mostly likely that that wolfram engine has gotten stuck. In any such case, quit the current execution and restart a fresh execution from that benchmark. 
- 
 
 
 ## How to extend Exist
@@ -162,7 +123,7 @@ verifier and cegis procedure easily.**
 #### Change the sampler
 - Make sure that you implement `sample` and `sample_counterex` to have the same type as 
 ours in `sample.py`; or, implement a sampler in any way you like, and update the usage of sampler in
-`cegis.py` and the processing of sampled data in `/learners/utils.py`.
+`cegis.py` and the postprocessing of sampled data in `/learners/utils.py`.
 
 #### Add learners
 - Add a python class `New_learner` that inherits the `Learner` class in `learners/abstract_learner.py`. 

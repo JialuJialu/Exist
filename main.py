@@ -11,6 +11,7 @@ import json
 import argparse
 import copy
 
+
 parser = argparse.ArgumentParser()
 
 parser.add_argument("-sub", "--subinv", help="put 'yes' (or 'y') if \
@@ -22,6 +23,7 @@ parser.add_argument("-nruns", "--nruns", help="number of runs from each initial\
     state", type = int)
 parser.add_argument("-nstates", "--nstates", help="number of initial states \
     we sample for each benchmark", type = int)
+parser.add_argument("-test", "--test", help="put 'yes' (or 'y') if running smoke test")
 
 args = parser.parse_args()
 
@@ -36,7 +38,12 @@ if str(args.cached).lower() in ["yes", "y"]:
     sample_new_data = False
 else: 
     sample_new_data = True
-    
+
+if str(args.test).lower() in ["yes", "y"]: 
+    smoke_test = True
+else: 
+    smoke_test = False
+     
 if args.nruns is None:
     NUM_runs = 500
 else:
@@ -46,6 +53,7 @@ if args.nstates is None:
     NUM_init_states = 500
 else:
     NUM_init_states = args.nruns
+
 
 PATH = os.path.realpath("")
 assumed_shape = "post + [G] * model"
@@ -243,6 +251,9 @@ else:
 session = WolframLanguageSession()
 with open(os.path.join(PATH, "program_list.txt"), "r") as f:
     prognames = f.read().split("\n")
+
+if smoke_test: 
+    prognames = ["Geo0"]
     
 results = {}
 for progname in prognames:
@@ -288,15 +299,15 @@ for progname in prognames:
         except KeyboardInterrupt:
             print("Caught a KeyboardInterrupt")
             sys.exit(0)
-        except: 
-            if exact: 
-                print("For {}: we get an unexpected exception".format(progname))
-                results[progname] = ["error", post, "error","error","error", "error"]
-            else: 
-                print("For {} with preexpetation {}: we get an unexpected\
-                      exception".format(progname, pre_lst[idx]))
-                results["{}_{}".format(progname, str(idx))] = ["error", pre, "error","error","error", "error"]
-            df = pd.DataFrame.from_dict(results, orient="index", columns=header)
-            df.to_csv(os.path.join(PATH, "results", "{}-{}.csv".format\
-                (prognames[0], "exact" if exact else "sub")))
+        # except: 
+        #     if exact: 
+        #         print("For {}: we get an unexpected exception".format(progname))
+        #         results[progname] = ["error", post, "error","error","error", "error"]
+        #     else: 
+        #         print("For {} with preexpetation {}: we get an unexpected\
+        #               exception".format(progname, pre_lst[idx]))
+        #         results["{}_{}".format(progname, str(idx))] = ["error", pre, "error","error","error", "error"]
+        #     df = pd.DataFrame.from_dict(results, orient="index", columns=header)
+        #     df.to_csv(os.path.join(PATH, "results", "{}-{}.csv".format\
+        #         (prognames[0], "exact" if exact else "sub")))
 session.terminate()
