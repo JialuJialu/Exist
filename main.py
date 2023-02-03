@@ -250,7 +250,7 @@ else:
     
 session = WolframLanguageSession()
 with open(os.path.join(PATH, "program_list.txt"), "r") as f:
-    prognames = f.read().split("\n")
+    prognames = f.read().strip().split("\n")
 
 if smoke_test: 
     prognames = ["Geo0"]
