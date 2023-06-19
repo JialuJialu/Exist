@@ -1,4 +1,4 @@
-# Dat-Driven Invariant Learning for Probabilistic Programs
+# Data-Driven Invariant Learning for Probabilistic Programs
 
 This repository hosts the artifact of our CAV 2022 paper [Data-Driven Invariant Learning for Probabilistic Programs](https://baojia.lu/assets/preprints/EXIST.pdf).
 
