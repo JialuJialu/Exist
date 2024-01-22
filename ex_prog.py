@@ -76,6 +76,39 @@ def Geo0(inpt, terms, NUM_runs):
     inpt["post-init"] = expected_post - inpt["z"]
     return inpt
 
+def Geotest(inpt, terms, NUM_runs):
+    post = 0
+    terms = [ele for ele in terms if ele not in inpt.keys()]
+    # record the initial value of features
+    for ele in terms:
+        inpt[ele] = round(eval(ele, {"__builtins__": None}, inpt), 2)
+    # when the loop guard is false, the loop would just exit on the initial 
+    # state. So we don't have to sample.  
+    if not (inpt["flip"] == 0):
+        return None
+    # sampling
+    for _ in range(NUM_runs):
+        p1 = inpt["p1"]
+        z, x = inpt["z"], inpt["x"]
+        flip = inpt["flip"]
+        while flip == 0:
+            d = bernoulli.rvs(size=1, p=p1)[0]
+            if d:
+                flip = 1
+            else:
+                x = x * 2
+                z = z + 1
+            if (z > 10000):
+                z = 50
+        post += z
+    #calculating the expected value of the post
+    expected_post = post / NUM_runs
+    inpt["expected_post"] = expected_post
+    # we substract the initial value of the postexpectation (in this case, "z")
+    # because invariants are in the shape of "post + [G] * model", and we are 
+    # fitting the model here.
+    inpt["post-init"] = expected_post - inpt["z"]
+    return inpt
 
 def Geo1(inpt, terms, NUM_runs):
     post = 0

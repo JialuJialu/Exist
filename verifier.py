@@ -224,16 +224,20 @@ def wp_expression(inv, loopbody):
                 ele = ele.split("=")
                 inv = inv.replace(ele[0], f"({ele[1]})")
         else:
-            for i in range(len(parts)):
-                parts[i] = parts[i].replace(",", ";")
-            if is_equalities(parts[1]):  # this is the case for handling conditionals `if then else`
-                inv1 = f"[{parts[1]}]*({wp_expression(inv,parts[0])})"
-                inv2 = f"[{negate(parts[1])}]*({wp_expression(inv,parts[2])})"
-                inv = f"{inv1}+{inv2}"
-            else:  # this is the case for handling probabilistic branching
-                inv1 = f"{parts[1]}*({wp_expression(inv,parts[0])})"
-                inv2 = f"(1-{parts[1]})*({wp_expression(inv,parts[2])})"
-                inv = f"{inv1}+{inv2}"
+            try:
+                for i in range(len(parts)):
+                    parts[i] = parts[i].replace(",", ";")
+                if is_equalities(parts[1]):  # this is the case for handling conditionals `if then else`
+                    inv1 = f"[{parts[1]}]*({wp_expression(inv,parts[0])})"
+                    inv2 = f"[{negate(parts[1])}]*({wp_expression(inv,parts[2])})"
+                    inv = f"{inv1}+{inv2}"
+                else:  # this is the case for handling probabilistic branching
+                    inv1 = f"{parts[1]}*({wp_expression(inv,parts[0])})"
+                    inv2 = f"(1-{parts[1]})*({wp_expression(inv,parts[2])})"
+                    inv = f"{inv1}+{inv2}"
+            except IndexError:
+                print("Error in parsing the loopbody")
+                raise ValueError("Verify if the loopbody is in the correct format")
     return inv
 
 
